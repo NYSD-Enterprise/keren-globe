@@ -1,3 +1,5 @@
+ require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 
@@ -7,67 +9,105 @@ app.use(cors());
 app.use(express.json());
 
 // =====================================================
-// HOME ROUTE
+// CONFIGURATION
+// =====================================================
+
+const DESTINATION_SERVICE =
+  process.env.DESTINATION_SERVICE || "http://localhost:5002";
+
+const PORT = process.env.PORT || 5004;
+
+// =====================================================
+// HOME
 // =====================================================
 
 app.get("/", (req, res) => {
   res.json({
     message: "Recommendation Service is running",
     service: "recommendation-service",
-    port: 5004,
+    port: PORT
   });
 });
 
 // =====================================================
 // GET RECOMMENDATIONS
-// Get destinations from Destination Service
 // =====================================================
 
 app.get("/recommendations", async (req, res) => {
   try {
+    const category = req.query.category;
+
+    console.log(
+      "Fetching destinations from:",
+      `${DESTINATION_SERVICE}/destinations`
+    );
+
     const response = await fetch(
-      "http://localhost:5002/destinations"
+      `${DESTINATION_SERVICE}/destinations`
     );
 
     if (!response.ok) {
-      throw new Error(
-        `Destination Service returned status ${response.status}`
+      return res.status(response.status).json({
+        message: "Destination Service returned an error"
+      });
+    }
+
+    const data = await response.json();
+
+    let destinations = Array.isArray(data)
+      ? data
+      : data.destinations || [];
+
+    // =================================================
+    // FILTER BY CATEGORY IF PROVIDED
+    // =================================================
+
+    if (category) {
+      destinations = destinations.filter(
+        (destination) =>
+          destination.category &&
+          destination.category.toLowerCase() ===
+            category.toLowerCase()
       );
     }
 
-    const destinations = await response.json();
+    // =================================================
+    // RETURN RECOMMENDATIONS
+    // =================================================
 
-    // Give every destination a basic match score.
-    // Later we can make this personalized based on
-    // the user's preferences.
-    const recommendations = destinations.map((destination) => ({
-      ...destination,
-      match_score: 100,
-    }));
-
-    res.status(200).json({
+    res.json({
       message: "Recommended destinations",
-      count: recommendations.length,
-      recommendations: recommendations,
+      count: destinations.length,
+      recommendations: destinations
     });
+
   } catch (error) {
     console.error(
-      "Recommendation Service Error:",
+      "RECOMMENDATION ERROR:",
       error.message
     );
 
-    res.status(502).json({
-      message: "Destination Service unavailable",
-      error: error.message,
+    res.status(503).json({
+      message: "Recommendation Service unavailable",
+      error: error.message
     });
   }
 });
 
 // =====================================================
-// START SERVER
+// 404 HANDLER
 // =====================================================
 
-const PORT = 5004;
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Route not found",
+    route: req.originalUrl
+  });
+});
+
+// =====================================================
+// START SERVER
+// =====================================================
 
 app.listen(PORT, () => {
   console.log(

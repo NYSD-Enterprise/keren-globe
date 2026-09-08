@@ -1,3 +1,5 @@
+ require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 
@@ -6,111 +8,211 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ============================
-// GATEWAY TEST
-// ============================
+// ===============================
+// MICROSERVICE URLS
+// ===============================
+
+const DESTINATION_SERVICE = "http://127.0.0.1:5002";
+const RECOMMENDATION_SERVICE = "http://127.0.0.1:5004";
+const ITINERARY_SERVICE = "http://127.0.0.1:5003";
+
+const PORT = process.env.PORT || 5001;
+
+// ===============================
+// HOME
+// ===============================
+
 app.get("/", (req, res) => {
-    res.json({
-        message: "GlobeTrotter API Gateway is running",
-        service: "api-gateway",
-        port: 5000
-    });
+  res.json({
+    message: "GlobeTrotter API Gateway is running",
+    service: "api-gateway",
+    port: PORT
+  });
 });
 
-// ============================
-// DESTINATION SERVICE
-// ============================
+// ===============================
+// DESTINATIONS
+// ===============================
+
 app.get("/destinations", async (req, res) => {
-    try {
-        const response = await fetch(
-            "http://localhost:5002/destinations"
-        );
+  try {
+    const response = await fetch(
+      DESTINATION_SERVICE + "/destinations"
+    );
 
-        const data = await response.json();
+    const data = await response.json();
 
-        res.status(response.status).json(data);
-    } catch (error) {
-        res.status(502).json({
-            message: "Destination Service unavailable",
-            error: error.message
-        });
+    if (!response.ok) {
+      return res.status(response.status).json(data);
     }
+
+    res.json(data);
+  } catch (error) {
+    console.error("DESTINATION ERROR:", error.message);
+
+    res.status(503).json({
+      message: "Destination Service unavailable",
+      error: error.message
+    });
+  }
 });
 
-// ============================
-// RECOMMENDATION SERVICE
-// ============================
+// ===============================
+// SINGLE DESTINATION
+// ===============================
+
+app.get("/destinations/:id", async (req, res) => {
+  try {
+    const response = await fetch(
+      DESTINATION_SERVICE + "/destinations/" + req.params.id
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("DESTINATION ERROR:", error.message);
+
+    res.status(503).json({
+      message: "Destination Service unavailable",
+      error: error.message
+    });
+  }
+});
+
+// ===============================
+// RECOMMENDATIONS
+// ===============================
+
 app.get("/recommendations", async (req, res) => {
-    try {
-        const response = await fetch(
-            "http://localhost:5004/recommendations"
-        );
+  try {
+    let url = RECOMMENDATION_SERVICE + "/recommendations";
 
-        const data = await response.json();
-
-        res.status(response.status).json(data);
-    } catch (error) {
-        res.status(502).json({
-            message: "Recommendation Service unavailable",
-            error: error.message
-        });
+    if (req.query.category) {
+      url =
+        url +
+        "?category=" +
+        encodeURIComponent(req.query.category);
     }
+
+    console.log("Recommendation request:", url);
+
+    const response = await fetch(url);
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("RECOMMENDATION ERROR:", error.message);
+
+    res.status(503).json({
+      message: "Recommendation Service unavailable",
+      error: error.message
+    });
+  }
 });
 
-// ============================
+// ===============================
 // GET ITINERARIES
-// ============================
+// ===============================
+
 app.get("/itineraries", async (req, res) => {
-    try {
-        const response = await fetch(
-            "http://localhost:5003/itineraries"
-        );
+  try {
+    const response = await fetch(
+      ITINERARY_SERVICE + "/itineraries"
+    );
 
-        const data = await response.json();
+    const data = await response.json();
 
-        res.status(response.status).json(data);
-    } catch (error) {
-        res.status(502).json({
-            message: "Itinerary Service unavailable",
-            error: error.message
-        });
+    if (!response.ok) {
+      return res.status(response.status).json(data);
     }
+
+    res.json(data);
+  } catch (error) {
+    console.error("ITINERARY GET ERROR:", error.message);
+
+    res.status(503).json({
+      message: "Itinerary Service unavailable",
+      error: error.message
+    });
+  }
 });
 
-// ============================
+// ===============================
 // CREATE ITINERARY
-// ============================
+// ===============================
+
 app.post("/itineraries", async (req, res) => {
-    try {
-        const response = await fetch(
-            "http://localhost:5003/itineraries",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(req.body)
-            }
-        );
+  try {
+    console.log("Creating itinerary:", req.body);
 
-        const data = await response.json();
+    const response = await fetch(
+      ITINERARY_SERVICE + "/itineraries",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(req.body)
+      }
+    );
 
-        res.status(response.status).json(data);
-    } catch (error) {
-        res.status(502).json({
-            message: "Itinerary Service unavailable",
-            error: error.message
-        });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
     }
+
+    res.status(201).json(data);
+  } catch (error) {
+    console.error("ITINERARY CREATE ERROR:", error.message);
+
+    res.status(503).json({
+      message: "Itinerary Service unavailable",
+      error: error.message
+    });
+  }
 });
 
-// ============================
+// ===============================
+// 404
+// ===============================
+
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Route not found",
+    route: req.originalUrl
+  });
+});
+
+// ===============================
 // START SERVER
-// ============================
-const PORT = 5000;
+// ===============================
 
 app.listen(PORT, () => {
-    console.log(
-        `API Gateway running on http://localhost:${PORT}`
-    );
+  console.log(
+    "GlobeTrotter API Gateway is running on http://localhost:" +
+      PORT
+  );
+
+  console.log(
+    "Destination Service: " + DESTINATION_SERVICE
+  );
+
+  console.log(
+    "Recommendation Service: " + RECOMMENDATION_SERVICE
+  );
+
+  console.log(
+    "Itinerary Service: " + ITINERARY_SERVICE
+  );
 });

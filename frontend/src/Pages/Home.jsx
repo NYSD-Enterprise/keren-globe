@@ -1,893 +1,915 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+   import { useState } from "react";
 import API from "../Services/Api";
 
 function Home() {
-  const navigate = useNavigate();
-
   const [destinations, setDestinations] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [itineraries, setItineraries] = useState([]);
 
   const [showDestinations, setShowDestinations] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
-  const [showItinerary, setShowItinerary] = useState(false);
+  const [showPlanner, setShowPlanner] = useState(false);
+  const [showItineraries, setShowItineraries] = useState(false);
 
-  const [destination, setDestination] = useState("");
-  const [days, setDays] = useState("");
+  const [loadingDestinations, setLoadingDestinations] = useState(false);
+  const [loadingRecommendations, setLoadingRecommendations] =
+    useState(false);
+  const [loadingItineraries, setLoadingItineraries] = useState(false);
+  const [creatingItinerary, setCreatingItinerary] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [destinationError, setDestinationError] = useState("");
+  const [recommendationError, setRecommendationError] = useState("");
+  const [itineraryError, setItineraryError] = useState("");
+  const [itinerarySuccess, setItinerarySuccess] = useState("");
 
-  // =========================
-  // GET DESTINATIONS
-  // =========================
+  const [selectedDestination, setSelectedDestination] = useState("");
+  const [days, setDays] = useState(5);
+
+  // ==========================================
+  // EXPLORE DESTINATIONS
+  // ==========================================
   const exploreDestinations = async () => {
     setShowDestinations(true);
-    setShowRecommendations(false);
-    setShowItinerary(false);
-
-    setLoading(true);
-    setError("");
-    setMessage("");
+    setDestinationError("");
 
     try {
+      setLoadingDestinations(true);
+
       const response = await API.get("/destinations");
 
-      console.log("DESTINATIONS:", response.data);
+      console.log("Destinations:", response.data);
 
-      setDestinations(
-        Array.isArray(response.data)
-          ? response.data
-          : response.data.destinations || []
-      );
-    } catch (err) {
-      console.error("DESTINATION ERROR:", err);
-
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to load destinations."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // =========================
-  // GET RECOMMENDATIONS
-  // =========================
-  const getRecommendations = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("Please login first to get recommendations.");
-      navigate("/login");
-      return;
-    }
-
-    setShowRecommendations(true);
-    setShowDestinations(false);
-    setShowItinerary(false);
-
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const response = await API.get("/recommendations", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("RECOMMENDATIONS:", response.data);
-
-      setRecommendations(
-        Array.isArray(response.data)
-          ? response.data
-          : response.data.recommendations || []
-      );
-    } catch (err) {
-      console.error("RECOMMENDATION ERROR:", err);
-
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        setError("Your login session has expired. Please login again.");
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 1200);
-
-        return;
+      if (Array.isArray(response.data)) {
+        setDestinations(response.data);
+      } else if (Array.isArray(response.data?.destinations)) {
+        setDestinations(response.data.destinations);
+      } else {
+        setDestinations([]);
+        setDestinationError("Invalid destination data received.");
       }
+    } catch (error) {
+      console.error("Destination error:", error);
 
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to load recommendations."
+      setDestinations([]);
+
+      setDestinationError(
+        "Unable to load destinations. Make sure the API Gateway and Destination Service are running."
       );
     } finally {
-      setLoading(false);
+      setLoadingDestinations(false);
     }
   };
 
-  // =========================
-  // OPEN ITINERARY
-  // =========================
-  const openItinerary = () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("Please login first to create an itinerary.");
-      navigate("/login");
-      return;
-    }
-
-    setShowItinerary(true);
-    setShowDestinations(false);
-    setShowRecommendations(false);
-
-    setError("");
-    setMessage("");
-  };
-
-  // =========================
-  // CREATE ITINERARY
-  // =========================
-  const createItinerary = async (e) => {
-    e.preventDefault();
-
-    setError("");
-    setMessage("");
-
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-
-    if (!token) {
-      setError("Please login before creating an itinerary.");
-      navigate("/login");
-      return;
-    }
-
-    if (!user?.id) {
-      setError("User information is missing. Please login again.");
-
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-
-      navigate("/login");
-      return;
-    }
-
-    if (!destination || !days) {
-      setError("Please select a destination and enter the number of days.");
-      return;
-    }
-
-    const itineraryData = {
-      userId: user.id,
-      destination: destination,
-      days: Number(days),
-    };
-
-    console.log("SENDING ITINERARY:", itineraryData);
+  // ==========================================
+  // GET RECOMMENDATIONS
+  // ==========================================
+  const getRecommendations = async () => {
+    setShowRecommendations(true);
+    setRecommendationError("");
+    setRecommendations([]);
 
     try {
-      const response = await API.post(
-        "/itineraries",
-        itineraryData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      setLoadingRecommendations(true);
+
+      const response = await API.get("/recommendations");
+
+      console.log("Recommendations:", response.data);
+
+      const recommendationList =
+        response.data?.recommendations;
+
+      console.log(
+        "Recommendation list:",
+        recommendationList
       );
 
-      console.log("ITINERARY RESPONSE:", response.data);
-
-      setMessage("🎉 Itinerary created successfully!");
-
-      const createdItinerary =
-        response.data.itinerary || response.data;
-
-      setItineraries((prev) => [
-        ...prev,
-        createdItinerary,
-      ]);
-
-      setDestination("");
-      setDays("");
-
-    } catch (err) {
-      console.error("ITINERARY ERROR:", err);
-
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        setError(
-          "Your login session has expired. Please login again."
+      if (Array.isArray(recommendationList)) {
+        setRecommendations(recommendationList);
+      } else {
+        console.error(
+          "recommendations is not an array:",
+          recommendationList
         );
 
-        setTimeout(() => {
-          navigate("/login");
-        }, 1200);
-
-        return;
+        setRecommendationError(
+          "Invalid recommendation data received."
+        );
       }
+    } catch (error) {
+      console.error("Recommendation error:", error);
 
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to create itinerary."
+      setRecommendationError(
+        "Unable to load recommendations. Make sure the Recommendation Service is running."
       );
+    } finally {
+      setLoadingRecommendations(false);
     }
   };
 
+  // ==========================================
+  // OPEN GOOGLE MAP
+  // ==========================================
+  const openMap = (destination) => {
+    if (
+      destination.latitude === undefined ||
+      destination.longitude === undefined
+    ) {
+      alert("Map coordinates are not available.");
+      return;
+    }
+
+    const mapUrl =
+      "https://www.google.com/maps/search/?api=1&query=" +
+      destination.latitude +
+      "," +
+      destination.longitude;
+
+    window.open(mapUrl, "_blank");
+  };
+
+  // ==========================================
+  // OPEN ITINERARY PLANNER
+  // ==========================================
+  const planTrip = () => {
+    setShowPlanner(true);
+    setItinerarySuccess("");
+    setItineraryError("");
+
+    // Load destinations if they haven't been loaded yet
+    if (destinations.length === 0) {
+      exploreDestinations();
+    }
+  };
+
+  // ==========================================
+  // CREATE ITINERARY
+  // ==========================================
+  const createItinerary = async (event) => {
+    event.preventDefault();
+
+    setItineraryError("");
+    setItinerarySuccess("");
+
+    if (!selectedDestination) {
+      setItineraryError("Please select a destination.");
+      return;
+    }
+
+    if (!days || Number(days) < 1) {
+      setItineraryError(
+        "Please enter at least 1 day."
+      );
+      return;
+    }
+
+    try {
+      setCreatingItinerary(true);
+
+      const itineraryData = {
+        userId: "demo-user",
+        destination: selectedDestination,
+        days: Number(days),
+      };
+
+      console.log(
+        "Creating itinerary:",
+        itineraryData
+      );
+
+      const response = await API.post(
+        "/itineraries",
+        itineraryData
+      );
+
+      console.log(
+        "Itinerary response:",
+        response.data
+      );
+
+      setItinerarySuccess(
+        "Itinerary created successfully!"
+      );
+
+      // Add the newly created itinerary to the screen
+      if (response.data?.itinerary) {
+        setItineraries((previous) => [
+          response.data.itinerary,
+          ...previous,
+        ]);
+      }
+
+      setShowItineraries(true);
+
+      // Clear form
+      setSelectedDestination("");
+      setDays(5);
+    } catch (error) {
+      console.error(
+        "Create itinerary error:",
+        error
+      );
+
+      if (error.response) {
+        console.error(
+          "Status:",
+          error.response.status
+        );
+
+        console.error(
+          "Response:",
+          error.response.data
+        );
+      }
+
+      setItineraryError(
+        "Unable to create itinerary. Make sure the API Gateway and Itinerary Service are running."
+      );
+    } finally {
+      setCreatingItinerary(false);
+    }
+  };
+
+  // ==========================================
+  // GET ALL ITINERARIES
+  // ==========================================
+  const loadItineraries = async () => {
+    setShowItineraries(true);
+    setItineraryError("");
+
+    try {
+      setLoadingItineraries(true);
+
+      const response = await API.get("/itineraries");
+
+      console.log(
+        "Itineraries response:",
+        response.data
+      );
+
+      if (Array.isArray(response.data?.itineraries)) {
+        setItineraries(response.data.itineraries);
+      } else if (Array.isArray(response.data)) {
+        setItineraries(response.data);
+      } else {
+        setItineraries([]);
+        setItineraryError(
+          "No itinerary data was received."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Get itineraries error:",
+        error
+      );
+
+      setItineraryError(
+        "Unable to load itineraries. Make sure the API Gateway and Itinerary Service are running."
+      );
+    } finally {
+      setLoadingItineraries(false);
+    }
+  };
+
+  // ==========================================
+  // DESTINATION CARD
+  // ==========================================
+  const DestinationCard = ({
+    destination,
+    recommended = false,
+  }) => {
+    const location =
+      destination.city && destination.country
+        ? `${destination.city}, ${destination.country}`
+        : destination.country ||
+          "Unknown location";
+
+    return (
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          borderRadius: "12px",
+          padding: "24px",
+          boxShadow:
+            "0 4px 12px rgba(0, 0, 0, 0.10)",
+        }}
+      >
+        <h3
+          style={{
+            fontSize: "22px",
+            marginBottom: "10px",
+          }}
+        >
+          {recommended ? "⭐" : "📍"}{" "}
+          {destination.name ||
+            "Unnamed destination"}
+        </h3>
+
+        <p
+          style={{
+            color: "#555",
+            marginBottom: "10px",
+          }}
+        >
+          {location}
+        </p>
+
+        <p
+          style={{
+            marginBottom: "10px",
+          }}
+        >
+          <strong>Category:</strong>{" "}
+          {destination.category ||
+            "General"}
+        </p>
+
+        <p
+          style={{
+            color: "#444",
+            lineHeight: "1.6",
+            minHeight: "55px",
+          }}
+        >
+          {destination.description ||
+            "Discover this amazing destination."}
+        </p>
+
+        {destination.latitude !==
+          undefined &&
+          destination.longitude !==
+            undefined && (
+            <button
+              onClick={() =>
+                openMap(destination)
+              }
+              style={{
+                marginTop: "12px",
+                padding: "10px 16px",
+                backgroundColor: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+              }}
+            >
+              📍 View on Map
+            </button>
+          )}
+      </div>
+    );
+  };
+
+  // ==========================================
+  // PAGE
+  // ==========================================
   return (
-    <div style={pageStyle}>
-
-      {/* =========================
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f5f7fb",
+        paddingBottom: "60px",
+      }}
+    >
+      {/* ======================================
           HERO
-      ========================= */}
-      <section style={heroStyle}>
+      ====================================== */}
+      <section
+        style={{
+          background:
+            "linear-gradient(135deg, #2563eb, #7c3aed)",
+          color: "#ffffff",
+          padding: "70px 20px",
+          textAlign: "center",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "48px",
+            margin: "0 0 15px 0",
+            fontWeight: "700",
+          }}
+        >
+          GlobeTrotter 🌍
+        </h1>
 
-        <div style={heroContentStyle}>
+        <p
+          style={{
+            fontSize: "20px",
+            maxWidth: "700px",
+            margin: "0 auto 30px auto",
+            lineHeight: "1.6",
+          }}
+        >
+          Your smart travel assistant for
+          discovering destinations, getting
+          recommendations and planning
+          unforgettable trips.
+        </p>
 
-          <div style={badgeStyle}>
-            🌍 Your Personal Travel Assistant
-          </div>
+        <div>
+          <button
+            onClick={exploreDestinations}
+            style={{
+              padding: "14px 24px",
+              margin: "8px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "600",
+            }}
+          >
+            Explore Destinations
+          </button>
 
-          <h1 style={heroTitleStyle}>
-            Explore the World with{" "}
-            <span style={highlightStyle}>
-              GlobeTrotter
-            </span>
-          </h1>
+          <button
+            onClick={getRecommendations}
+            style={{
+              padding: "14px 24px",
+              margin: "8px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "600",
+            }}
+          >
+            Get Recommendations
+          </button>
 
-          <p style={heroDescriptionStyle}>
-            Discover amazing destinations, get personalized
-            recommendations, and create your perfect itinerary.
-          </p>
+          <button
+            onClick={planTrip}
+            style={{
+              padding: "14px 24px",
+              margin: "8px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "600",
+            }}
+          >
+            Plan My Trip
+          </button>
 
-          <div style={buttonContainerStyle}>
-
-            <button
-              onClick={exploreDestinations}
-              style={primaryButtonStyle}
-            >
-              🌍 Explore Destinations
-            </button>
-
-            <button
-              onClick={getRecommendations}
-              style={secondaryButtonStyle}
-            >
-              ✨ Get Recommendations
-            </button>
-
-            <button
-              onClick={openItinerary}
-              style={secondaryButtonStyle}
-            >
-              🗺️ Plan My Trip
-            </button>
-
-          </div>
-
+          <button
+            onClick={loadItineraries}
+            style={{
+              padding: "14px 24px",
+              margin: "8px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "600",
+            }}
+          >
+            My Itineraries
+          </button>
         </div>
-
       </section>
 
-
-      {/* =========================
-          STATUS
-      ========================= */}
-
-      {loading && (
-        <div style={loadingStyle}>
-          <div style={spinnerStyle}>
-            ⏳
-          </div>
-
-          Loading...
-        </div>
-      )}
-
-      {error && (
-        <div style={errorStyle}>
-          ❌ {error}
-        </div>
-      )}
-
-      {message && (
-        <div style={successStyle}>
-          ✅ {message}
-        </div>
-      )}
-
-
-      {/* =========================
-          DESTINATIONS
-      ========================= */}
-
-      {showDestinations && (
-        <section style={sectionStyle}>
-
-          <h2 style={sectionTitleStyle}>
-            🌍 Explore Destinations
-          </h2>
-
-          <p style={sectionSubtitleStyle}>
-            Discover some amazing places around the world.
-          </p>
-
-          {destinations.length === 0 ? (
-            <div style={emptyStyle}>
-              No destinations found.
-            </div>
-          ) : (
-            <div style={gridStyle}>
-
-              {destinations.map((item, index) => (
-
-                <div
-                  key={item.id || item.name || index}
-                  style={cardStyle}
-                >
-
-                  <div style={destinationIconStyle}>
-                    🌍
-                  </div>
-
-                  <h3 style={cardTitleStyle}>
-                    {item.name}
-                  </h3>
-
-                  <p style={countryStyle}>
-                    📍 {item.country}
-                  </p>
-
-                  {item.category && (
-                    <span style={categoryStyle}>
-                      {item.category}
-                    </span>
-                  )}
-
-                  <p style={cardDescriptionStyle}>
-                    {item.description}
-                  </p>
-
-                </div>
-
-              ))}
-
-            </div>
-          )}
-
-        </section>
-      )}
-
-
-      {/* =========================
-          RECOMMENDATIONS
-      ========================= */}
-
-      {showRecommendations && (
-        <section style={sectionStyle}>
-
-          <h2 style={sectionTitleStyle}>
-            ✨ Recommended Destinations
-          </h2>
-
-          <p style={sectionSubtitleStyle}>
-            Destinations selected for your travel experience.
-          </p>
-
-          {recommendations.length === 0 ? (
-            <div style={emptyStyle}>
-              No recommendations available.
-            </div>
-          ) : (
-            <div style={gridStyle}>
-
-              {recommendations.map((item, index) => (
-
-                <div
-                  key={item.id || item.name || index}
-                  style={cardStyle}
-                >
-
-                  <div style={destinationIconStyle}>
-                    ✨
-                  </div>
-
-                  <h3 style={cardTitleStyle}>
-                    {item.name}
-                  </h3>
-
-                  <p style={countryStyle}>
-                    📍 {item.country}
-                  </p>
-
-                  {item.category && (
-                    <span style={categoryStyle}>
-                      {item.category}
-                    </span>
-                  )}
-
-                  <p style={cardDescriptionStyle}>
-                    {item.description}
-                  </p>
-
-                  {item.match_score !== undefined && (
-                    <div style={scoreStyle}>
-                      ⭐ Match Score: {item.match_score}
-                    </div>
-                  )}
-
-                </div>
-
-              ))}
-
-            </div>
-          )}
-
-        </section>
-      )}
-
-
-      {/* =========================
-          ITINERARY
-      ========================= */}
-
-      {showItinerary && (
-        <section style={itinerarySectionStyle}>
-
-          <div style={itineraryCardStyle}>
-
-            <div style={itineraryIconStyle}>
-              🗺️
-            </div>
-
-            <h2 style={sectionTitleStyle}>
-              Create Your Itinerary
+      {/* ======================================
+          ITINERARY PLANNER
+      ====================================== */}
+      {showPlanner && (
+        <section
+          style={{
+            padding: "50px 20px",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "600px",
+              margin: "0 auto",
+              backgroundColor: "#ffffff",
+              padding: "30px",
+              borderRadius: "12px",
+              boxShadow:
+                "0 4px 12px rgba(0, 0, 0, 0.10)",
+            }}
+          >
+            <h2
+              style={{
+                textAlign: "center",
+                fontSize: "32px",
+                marginBottom: "10px",
+              }}
+            >
+              Plan My Trip 🗺️
             </h2>
 
-            <p style={sectionSubtitleStyle}>
-              Plan your trip by choosing a destination
-              and the number of days.
+            <p
+              style={{
+                textAlign: "center",
+                color: "#666",
+                marginBottom: "30px",
+              }}
+            >
+              Choose a destination and
+              specify how many days you
+              want to stay.
             </p>
 
-            <form onSubmit={createItinerary}>
+            <form
+              onSubmit={createItinerary}
+            >
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                }}
+              >
+                Destination
+              </label>
 
-              {/* DESTINATION */}
+              <select
+                value={selectedDestination}
+                onChange={(event) =>
+                  setSelectedDestination(
+                    event.target.value
+                  )
+                }
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginBottom: "20px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              >
+                <option value="">
+                  -- Select a destination --
+                </option>
 
-              <div style={formGroupStyle}>
+                {destinations.map(
+                  (destination, index) => (
+                    <option
+                      key={
+                        destination.id ||
+                        destination._id ||
+                        index
+                      }
+                      value={
+                        destination.name
+                      }
+                    >
+                      {destination.name}
+                      {destination.country
+                        ? ` - ${destination.country}`
+                        : ""}
+                    </option>
+                  )
+                )}
+              </select>
 
-                <label style={labelStyle}>
-                  Destination
-                </label>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                }}
+              >
+                Number of Days
+              </label>
 
-                <select
-                  value={destination}
-                  onChange={(e) =>
-                    setDestination(e.target.value)
-                  }
-                  required
-                  style={inputStyle}
-                >
-
-                  <option value="">
-                    Select a destination
-                  </option>
-
-                  <option value="Paris">
-                    Paris, France
-                  </option>
-
-                  <option value="Dubai">
-                    Dubai, UAE
-                  </option>
-
-                  <option value="Cape Town">
-                    Cape Town, South Africa
-                  </option>
-
-                  <option value="Nairobi">
-                    Nairobi, Kenya
-                  </option>
-
-                </select>
-
-              </div>
-
-
-              {/* DAYS */}
-
-              <div style={formGroupStyle}>
-
-                <label style={labelStyle}>
-                  Number of Days
-                </label>
-
-                <input
-                  type="number"
-                  min="1"
-                  max="365"
-                  value={days}
-                  onChange={(e) =>
-                    setDays(e.target.value)
-                  }
-                  placeholder="Example: 5"
-                  required
-                  style={inputStyle}
-                />
-
-              </div>
-
+              <input
+                type="number"
+                min="1"
+                max="365"
+                value={days}
+                onChange={(event) =>
+                  setDays(event.target.value)
+                }
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginBottom: "20px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                  boxSizing: "border-box",
+                }}
+              />
 
               <button
                 type="submit"
-                style={saveButtonStyle}
+                disabled={creatingItinerary}
+                style={{
+                  width: "100%",
+                  padding: "14px",
+                  backgroundColor:
+                    creatingItinerary
+                      ? "#999"
+                      : "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: creatingItinerary
+                    ? "not-allowed"
+                    : "pointer",
+                  fontSize: "17px",
+                  fontWeight: "600",
+                }}
               >
-                💾 Save Itinerary
+                {creatingItinerary
+                  ? "Creating..."
+                  : "Create Itinerary"}
               </button>
-
             </form>
 
+            {itinerarySuccess && (
+              <p
+                style={{
+                  marginTop: "20px",
+                  padding: "12px",
+                  backgroundColor: "#dcfce7",
+                  color: "#166534",
+                  borderRadius: "6px",
+                  textAlign: "center",
+                  fontWeight: "600",
+                }}
+              >
+                ✅ {itinerarySuccess}
+              </p>
+            )}
+
+            {itineraryError && (
+              <p
+                style={{
+                  marginTop: "20px",
+                  padding: "12px",
+                  backgroundColor: "#fee2e2",
+                  color: "#991b1b",
+                  borderRadius: "6px",
+                  textAlign: "center",
+                }}
+              >
+                {itineraryError}
+              </p>
+            )}
           </div>
-
-
-          {/* SAVED ITINERARIES */}
-
-          {itineraries.length > 0 && (
-
-            <div style={savedContainerStyle}>
-
-              <h3 style={savedTitleStyle}>
-                📋 Your New Itineraries
-              </h3>
-
-              {itineraries.map((item, index) => (
-
-                <div
-                  key={item.id || index}
-                  style={savedCardStyle}
-                >
-
-                  <h4>
-                    ✈️ {item.destination}
-                  </h4>
-
-                  <p>
-                    <strong>Duration:</strong>{" "}
-                    {item.days} days
-                  </p>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          )}
-
         </section>
       )}
 
+      {/* ======================================
+          DESTINATIONS
+      ====================================== */}
+      {showDestinations && (
+        <section
+          style={{
+            padding: "50px 20px",
+          }}
+        >
+          <h2
+            style={{
+              textAlign: "center",
+              fontSize: "32px",
+              marginBottom: "30px",
+            }}
+          >
+            Explore Destinations
+          </h2>
+
+          {loadingDestinations && (
+            <p
+              style={{
+                textAlign: "center",
+              }}
+            >
+              Loading destinations...
+            </p>
+          )}
+
+          {destinationError && (
+            <p
+              style={{
+                textAlign: "center",
+                color: "red",
+              }}
+            >
+              {destinationError}
+            </p>
+          )}
+
+          {destinations.length > 0 && (
+            <div
+              style={{
+                maxWidth: "1100px",
+                margin: "0 auto",
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: "20px",
+              }}
+            >
+              {destinations.map(
+                (destination, index) => (
+                  <DestinationCard
+                    key={
+                      destination.id ||
+                      destination._id ||
+                      index
+                    }
+                    destination={destination}
+                  />
+                )
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ======================================
+          RECOMMENDATIONS
+      ====================================== */}
+      {showRecommendations && (
+        <section
+          style={{
+            padding: "50px 20px",
+          }}
+        >
+          <h2
+            style={{
+              textAlign: "center",
+              fontSize: "32px",
+              marginBottom: "30px",
+            }}
+          >
+            Recommended Destinations
+          </h2>
+
+          {loadingRecommendations && (
+            <p
+              style={{
+                textAlign: "center",
+              }}
+            >
+              Loading recommendations...
+            </p>
+          )}
+
+          {recommendationError && (
+            <p
+              style={{
+                textAlign: "center",
+                color: "red",
+              }}
+            >
+              {recommendationError}
+            </p>
+          )}
+
+          {recommendations.length > 0 && (
+            <div
+              style={{
+                maxWidth: "1100px",
+                margin: "0 auto",
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: "20px",
+              }}
+            >
+              {recommendations.map(
+                (destination, index) => (
+                  <DestinationCard
+                    key={
+                      destination.id ||
+                      destination._id ||
+                      index
+                    }
+                    destination={destination}
+                    recommended={true}
+                  />
+                )
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ======================================
+          ITINERARIES
+      ====================================== */}
+      {showItineraries && (
+        <section
+          style={{
+            padding: "50px 20px",
+          }}
+        >
+          <h2
+            style={{
+              textAlign: "center",
+              fontSize: "32px",
+              marginBottom: "30px",
+            }}
+          >
+            My Itineraries 📋
+          </h2>
+
+          {loadingItineraries && (
+            <p
+              style={{
+                textAlign: "center",
+              }}
+            >
+              Loading itineraries...
+            </p>
+          )}
+
+          {itineraryError && (
+            <p
+              style={{
+                textAlign: "center",
+                color: "red",
+              }}
+            >
+              {itineraryError}
+            </p>
+          )}
+
+          {!loadingItineraries &&
+            itineraries.length === 0 &&
+            !itineraryError && (
+              <p
+                style={{
+                  textAlign: "center",
+                }}
+              >
+                No itineraries found.
+              </p>
+            )}
+
+          {itineraries.length > 0 && (
+            <div
+              style={{
+                maxWidth: "900px",
+                margin: "0 auto",
+                display: "grid",
+                gap: "20px",
+              }}
+            >
+              {itineraries.map(
+                (itinerary, index) => (
+                  <div
+                    key={
+                      itinerary.id ||
+                      itinerary._id ||
+                      index
+                    }
+                    style={{
+                      backgroundColor:
+                        "#ffffff",
+                      padding: "24px",
+                      borderRadius: "12px",
+                      boxShadow:
+                        "0 4px 12px rgba(0, 0, 0, 0.10)",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: "22px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      ✈️{" "}
+                      {itinerary.destination}
+                    </h3>
+
+                    <p>
+                      <strong>User:</strong>{" "}
+                      {itinerary.userId ||
+                        "Unknown"}
+                    </p>
+
+                    <p>
+                      <strong>Duration:</strong>{" "}
+                      {itinerary.days} day
+                      {Number(
+                        itinerary.days
+                      ) !== 1
+                        ? "s"
+                        : ""}
+                    </p>
+
+                    <p>
+                      <strong>Itinerary ID:</strong>{" "}
+                      {itinerary.id ||
+                        itinerary._id ||
+                        "N/A"}
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
-
-
-/* =====================================================
-   STYLES
-===================================================== */
-
-const pageStyle = {
-  minHeight: "100vh",
-  background: "#f7f9fc",
-  fontFamily: "Arial, sans-serif",
-  paddingBottom: "60px",
-};
-
-
-const heroStyle = {
-  padding: "80px 20px",
-  textAlign: "center",
-  background:
-    "linear-gradient(135deg, #eaf2ff, #ffffff)",
-};
-
-
-const heroContentStyle = {
-  maxWidth: "850px",
-  margin: "0 auto",
-};
-
-
-const badgeStyle = {
-  display: "inline-block",
-  padding: "8px 16px",
-  borderRadius: "30px",
-  background: "#ffffff",
-  color: "#2563eb",
-  fontWeight: "600",
-  fontSize: "14px",
-  marginBottom: "20px",
-  boxShadow: "0 3px 12px rgba(0,0,0,0.08)",
-};
-
-
-const heroTitleStyle = {
-  fontSize: "48px",
-  lineHeight: "1.15",
-  margin: "0 auto 20px",
-  color: "#172033",
-};
-
-
-const highlightStyle = {
-  color: "#2563eb",
-};
-
-
-const heroDescriptionStyle = {
-  fontSize: "19px",
-  lineHeight: "1.6",
-  color: "#5b6472",
-  maxWidth: "700px",
-  margin: "0 auto",
-};
-
-
-const buttonContainerStyle = {
-  display: "flex",
-  justifyContent: "center",
-  flexWrap: "wrap",
-  gap: "12px",
-  marginTop: "30px",
-};
-
-
-const primaryButtonStyle = {
-  padding: "14px 22px",
-  border: "none",
-  borderRadius: "9px",
-  background: "#2563eb",
-  color: "#ffffff",
-  fontSize: "15px",
-  fontWeight: "600",
-  cursor: "pointer",
-};
-
-
-const secondaryButtonStyle = {
-  padding: "14px 22px",
-  border: "1px solid #2563eb",
-  borderRadius: "9px",
-  background: "#ffffff",
-  color: "#2563eb",
-  fontSize: "15px",
-  fontWeight: "600",
-  cursor: "pointer",
-};
-
-
-const loadingStyle = {
-  textAlign: "center",
-  padding: "20px",
-  color: "#2563eb",
-  fontWeight: "600",
-};
-
-
-const spinnerStyle = {
-  fontSize: "22px",
-  marginBottom: "5px",
-};
-
-
-const errorStyle = {
-  maxWidth: "900px",
-  margin: "20px auto",
-  padding: "14px 18px",
-  borderRadius: "10px",
-  background: "#ffecec",
-  color: "#b91c1c",
-  textAlign: "center",
-  boxSizing: "border-box",
-};
-
-
-const successStyle = {
-  maxWidth: "900px",
-  margin: "20px auto",
-  padding: "14px 18px",
-  borderRadius: "10px",
-  background: "#ecfff0",
-  color: "#15803d",
-  textAlign: "center",
-  boxSizing: "border-box",
-};
-
-
-const sectionStyle = {
-  maxWidth: "1100px",
-  margin: "50px auto",
-  padding: "0 20px",
-};
-
-
-const sectionTitleStyle = {
-  textAlign: "center",
-  fontSize: "30px",
-  color: "#172033",
-  marginBottom: "10px",
-};
-
-
-const sectionSubtitleStyle = {
-  textAlign: "center",
-  color: "#6b7280",
-  marginBottom: "30px",
-};
-
-
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: "22px",
-};
-
-
-const cardStyle = {
-  background: "#ffffff",
-  borderRadius: "15px",
-  padding: "25px",
-  boxShadow:
-    "0 5px 18px rgba(0,0,0,0.08)",
-  border: "1px solid #e5e7eb",
-};
-
-
-const destinationIconStyle = {
-  fontSize: "38px",
-  marginBottom: "12px",
-};
-
-
-const cardTitleStyle = {
-  fontSize: "22px",
-  marginBottom: "8px",
-  color: "#172033",
-};
-
-
-const countryStyle = {
-  color: "#555f70",
-  marginBottom: "12px",
-};
-
-
-const categoryStyle = {
-  display: "inline-block",
-  padding: "5px 10px",
-  borderRadius: "20px",
-  background: "#eef4ff",
-  color: "#2563eb",
-  fontSize: "13px",
-  fontWeight: "600",
-};
-
-
-const cardDescriptionStyle = {
-  color: "#6b7280",
-  lineHeight: "1.6",
-  marginTop: "15px",
-};
-
-
-const scoreStyle = {
-  marginTop: "15px",
-  padding: "10px",
-  borderRadius: "8px",
-  background: "#fff8e1",
-  fontWeight: "600",
-};
-
-
-const emptyStyle = {
-  textAlign: "center",
-  padding: "30px",
-  background: "#ffffff",
-  borderRadius: "12px",
-  color: "#777",
-};
-
-
-const itinerarySectionStyle = {
-  maxWidth: "700px",
-  margin: "50px auto",
-  padding: "0 20px",
-};
-
-
-const itineraryCardStyle = {
-  background: "#ffffff",
-  padding: "35px",
-  borderRadius: "18px",
-  boxShadow:
-    "0 8px 25px rgba(0,0,0,0.08)",
-};
-
-
-const itineraryIconStyle = {
-  textAlign: "center",
-  fontSize: "45px",
-  marginBottom: "10px",
-};
-
-
-const formGroupStyle = {
-  marginBottom: "22px",
-};
-
-
-const labelStyle = {
-  display: "block",
-  fontWeight: "600",
-  marginBottom: "8px",
-  color: "#333",
-};
-
-
-const inputStyle = {
-  width: "100%",
-  padding: "13px",
-  borderRadius: "8px",
-  border: "1px solid #d1d5db",
-  fontSize: "15px",
-  boxSizing: "border-box",
-};
-
-
-const saveButtonStyle = {
-  width: "100%",
-  padding: "14px",
-  border: "none",
-  borderRadius: "9px",
-  background: "#2563eb",
-  color: "#ffffff",
-  fontSize: "16px",
-  fontWeight: "600",
-  cursor: "pointer",
-};
-
-
-const savedContainerStyle = {
-  marginTop: "30px",
-};
-
-
-const savedTitleStyle = {
-  marginBottom: "15px",
-};
-
-
-const savedCardStyle = {
-  background: "#ffffff",
-  padding: "18px",
-  borderRadius: "10px",
-  marginBottom: "10px",
-  border: "1px solid #e5e7eb",
-};
-
 
 export default Home;
