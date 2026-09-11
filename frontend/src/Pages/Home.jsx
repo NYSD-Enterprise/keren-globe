@@ -1,5 +1,137 @@
-   import { useState } from "react";
+import { useState } from "react";
 import API from "../Services/Api";
+
+const destinationImages = [
+  "/images/Paris.jpg",
+  "/images/Dubia.jpg",
+  "/images/Cape town.jpg",
+  "/images/Nairobi.jpg",
+  "/images/London.jpg",
+  "/images/Rome.jpg",
+  "/images/Cairo.jpg",
+  "/images/Ictuniversity.jpg",
+  "/images/Mount Cameroon.jpg",
+  "/images/Kribi Beach.jpg",
+  "/images/Limbe Beach.jpg",
+  "/images/Mefou National Park.jpg",
+  "/images/Waza National Park.jpg",
+  "/images/Bamenda.jpg",
+  "/images/National Mesuem of Yaounde.jpg",
+  "/images/Yaounde.jpg",
+];
+
+function DestinationCard({ destination, index }) {
+  const imagePath = destinationImages[index];
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "14px",
+        overflow: "hidden",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      }}
+    >
+      {imagePath && (
+        <img
+          src={imagePath}
+          alt={destination.name || "Destination"}
+          style={{
+            width: "100%",
+            height: "155px",
+            objectFit: "cover",
+            display: "block",
+          }}
+          onError={(event) => {
+            console.error(
+              "Image failed:",
+              destination.name,
+              imagePath
+            );
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      )}
+
+      <div
+        style={{
+          padding: "16px",
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+        }}
+      >
+        <h3
+          style={{
+            margin: "0 0 7px 0",
+            fontSize: "19px",
+            color: "#172033",
+          }}
+        >
+          📍 {destination.name}
+        </h3>
+
+        <p
+          style={{
+            margin: "0 0 7px 0",
+            fontWeight: "bold",
+            color: "#374151",
+          }}
+        >
+          {destination.country}
+        </p>
+
+        <p
+          style={{
+            margin: "0 0 10px 0",
+            fontSize: "14px",
+            color: "#2563eb",
+          }}
+        >
+          <strong>Category:</strong> {destination.category}
+        </p>
+
+        <p
+          style={{
+            margin: "0 0 15px 0",
+            fontSize: "14px",
+            lineHeight: "1.5",
+            color: "#4b5563",
+            flex: 1,
+          }}
+        >
+          {destination.description}
+        </p>
+
+        {destination.latitude && destination.longitude && (
+          <a
+            href={`https://www.google.com/maps?q=${destination.latitude},${destination.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block",
+              textAlign: "center",
+              backgroundColor: "#2563eb",
+              color: "#ffffff",
+              padding: "9px 12px",
+              borderRadius: "7px",
+              textDecoration: "none",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+          >
+            📍 View on Map
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function Home() {
   const [destinations, setDestinations] = useState([]);
@@ -25,11 +157,12 @@ function Home() {
   const [selectedDestination, setSelectedDestination] = useState("");
   const [days, setDays] = useState(5);
 
-  // ==========================================
-  // EXPLORE DESTINATIONS
-  // ==========================================
   const exploreDestinations = async () => {
     setShowDestinations(true);
+    setShowRecommendations(false);
+    setShowPlanner(false);
+    setShowItineraries(false);
+
     setDestinationError("");
 
     try {
@@ -39,18 +172,9 @@ function Home() {
 
       console.log("Destinations:", response.data);
 
-      if (Array.isArray(response.data)) {
-        setDestinations(response.data);
-      } else if (Array.isArray(response.data?.destinations)) {
-        setDestinations(response.data.destinations);
-      } else {
-        setDestinations([]);
-        setDestinationError("Invalid destination data received.");
-      }
+      setDestinations(response.data);
     } catch (error) {
       console.error("Destination error:", error);
-
-      setDestinations([]);
 
       setDestinationError(
         "Unable to load destinations. Make sure the API Gateway and Destination Service are running."
@@ -60,11 +184,12 @@ function Home() {
     }
   };
 
-  // ==========================================
-  // GET RECOMMENDATIONS
-  // ==========================================
   const getRecommendations = async () => {
     setShowRecommendations(true);
+    setShowDestinations(false);
+    setShowPlanner(false);
+    setShowItineraries(false);
+
     setRecommendationError("");
     setRecommendations([]);
 
@@ -73,167 +198,35 @@ function Home() {
 
       const response = await API.get("/recommendations");
 
-      console.log("Recommendations:", response.data);
+      console.log("Recommendations response:", response.data);
 
-      const recommendationList =
-        response.data?.recommendations;
-
-      console.log(
-        "Recommendation list:",
-        recommendationList
-      );
-
-      if (Array.isArray(recommendationList)) {
-        setRecommendations(recommendationList);
+      if (
+        response.data &&
+        Array.isArray(response.data.recommendations)
+      ) {
+        setRecommendations(response.data.recommendations);
+      } else if (Array.isArray(response.data)) {
+        setRecommendations(response.data);
       } else {
-        console.error(
-          "recommendations is not an array:",
-          recommendationList
-        );
-
-        setRecommendationError(
-          "Invalid recommendation data received."
-        );
+        throw new Error("Invalid recommendation response format");
       }
     } catch (error) {
       console.error("Recommendation error:", error);
 
       setRecommendationError(
-        "Unable to load recommendations. Make sure the Recommendation Service is running."
+        "Unable to load recommendations. Make sure the API Gateway and Recommendation Service are running."
       );
     } finally {
       setLoadingRecommendations(false);
     }
   };
 
-  // ==========================================
-  // OPEN GOOGLE MAP
-  // ==========================================
-  const openMap = (destination) => {
-    if (
-      destination.latitude === undefined ||
-      destination.longitude === undefined
-    ) {
-      alert("Map coordinates are not available.");
-      return;
-    }
-
-    const mapUrl =
-      "https://www.google.com/maps/search/?api=1&query=" +
-      destination.latitude +
-      "," +
-      destination.longitude;
-
-    window.open(mapUrl, "_blank");
-  };
-
-  // ==========================================
-  // OPEN ITINERARY PLANNER
-  // ==========================================
-  const planTrip = () => {
-    setShowPlanner(true);
-    setItinerarySuccess("");
-    setItineraryError("");
-
-    // Load destinations if they haven't been loaded yet
-    if (destinations.length === 0) {
-      exploreDestinations();
-    }
-  };
-
-  // ==========================================
-  // CREATE ITINERARY
-  // ==========================================
-  const createItinerary = async (event) => {
-    event.preventDefault();
-
-    setItineraryError("");
-    setItinerarySuccess("");
-
-    if (!selectedDestination) {
-      setItineraryError("Please select a destination.");
-      return;
-    }
-
-    if (!days || Number(days) < 1) {
-      setItineraryError(
-        "Please enter at least 1 day."
-      );
-      return;
-    }
-
-    try {
-      setCreatingItinerary(true);
-
-      const itineraryData = {
-        userId: "demo-user",
-        destination: selectedDestination,
-        days: Number(days),
-      };
-
-      console.log(
-        "Creating itinerary:",
-        itineraryData
-      );
-
-      const response = await API.post(
-        "/itineraries",
-        itineraryData
-      );
-
-      console.log(
-        "Itinerary response:",
-        response.data
-      );
-
-      setItinerarySuccess(
-        "Itinerary created successfully!"
-      );
-
-      // Add the newly created itinerary to the screen
-      if (response.data?.itinerary) {
-        setItineraries((previous) => [
-          response.data.itinerary,
-          ...previous,
-        ]);
-      }
-
-      setShowItineraries(true);
-
-      // Clear form
-      setSelectedDestination("");
-      setDays(5);
-    } catch (error) {
-      console.error(
-        "Create itinerary error:",
-        error
-      );
-
-      if (error.response) {
-        console.error(
-          "Status:",
-          error.response.status
-        );
-
-        console.error(
-          "Response:",
-          error.response.data
-        );
-      }
-
-      setItineraryError(
-        "Unable to create itinerary. Make sure the API Gateway and Itinerary Service are running."
-      );
-    } finally {
-      setCreatingItinerary(false);
-    }
-  };
-
-  // ==========================================
-  // GET ALL ITINERARIES
-  // ==========================================
   const loadItineraries = async () => {
     setShowItineraries(true);
+    setShowDestinations(false);
+    setShowRecommendations(false);
+    setShowPlanner(false);
+
     setItineraryError("");
 
     try {
@@ -241,26 +234,20 @@ function Home() {
 
       const response = await API.get("/itineraries");
 
-      console.log(
-        "Itineraries response:",
-        response.data
-      );
+      console.log("Itineraries response:", response.data);
 
-      if (Array.isArray(response.data?.itineraries)) {
+      if (
+        response.data &&
+        Array.isArray(response.data.itineraries)
+      ) {
         setItineraries(response.data.itineraries);
       } else if (Array.isArray(response.data)) {
         setItineraries(response.data);
       } else {
         setItineraries([]);
-        setItineraryError(
-          "No itinerary data was received."
-        );
       }
     } catch (error) {
-      console.error(
-        "Get itineraries error:",
-        error
-      );
+      console.error("Itinerary loading error:", error);
 
       setItineraryError(
         "Unable to load itineraries. Make sure the API Gateway and Itinerary Service are running."
@@ -270,644 +257,596 @@ function Home() {
     }
   };
 
-  // ==========================================
-  // DESTINATION CARD
-  // ==========================================
-  const DestinationCard = ({
-    destination,
-    recommended = false,
-  }) => {
-    const location =
-      destination.city && destination.country
-        ? `${destination.city}, ${destination.country}`
-        : destination.country ||
-          "Unknown location";
+  const createItinerary = async () => {
+    setItineraryError("");
+    setItinerarySuccess("");
 
-    return (
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          borderRadius: "12px",
-          padding: "24px",
-          boxShadow:
-            "0 4px 12px rgba(0, 0, 0, 0.10)",
-        }}
-      >
-        <h3
-          style={{
-            fontSize: "22px",
-            marginBottom: "10px",
-          }}
-        >
-          {recommended ? "⭐" : "📍"}{" "}
-          {destination.name ||
-            "Unnamed destination"}
-        </h3>
+    if (!selectedDestination) {
+      setItineraryError("Please select a destination.");
+      return;
+    }
 
-        <p
-          style={{
-            color: "#555",
-            marginBottom: "10px",
-          }}
-        >
-          {location}
-        </p>
+    try {
+      setCreatingItinerary(true);
 
-        <p
-          style={{
-            marginBottom: "10px",
-          }}
-        >
-          <strong>Category:</strong>{" "}
-          {destination.category ||
-            "General"}
-        </p>
+      console.log("Creating itinerary:", {
+        userId: "demo-user",
+        destination: selectedDestination,
+        days: Number(days),
+      });
 
-        <p
-          style={{
-            color: "#444",
-            lineHeight: "1.6",
-            minHeight: "55px",
-          }}
-        >
-          {destination.description ||
-            "Discover this amazing destination."}
-        </p>
+      const response = await API.post("/itineraries", {
+        userId: "demo-user",
+        destination: selectedDestination,
+        days: Number(days),
+      });
 
-        {destination.latitude !==
-          undefined &&
-          destination.longitude !==
-            undefined && (
-            <button
-              onClick={() =>
-                openMap(destination)
-              }
-              style={{
-                marginTop: "12px",
-                padding: "10px 16px",
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
-            >
-              📍 View on Map
-            </button>
-          )}
-      </div>
-    );
+      console.log("Created itinerary:", response.data);
+
+      setItinerarySuccess(
+        "Itinerary created successfully!"
+      );
+
+      setSelectedDestination("");
+      setDays(5);
+
+      await loadItineraries();
+    } catch (error) {
+      console.error("Create itinerary error:", error);
+
+      setItineraryError(
+        "Unable to create itinerary. Make sure the API Gateway and Itinerary Service are running."
+      );
+    } finally {
+      setCreatingItinerary(false);
+    }
   };
 
-  // ==========================================
-  // PAGE
-  // ==========================================
+  const openPlanner = () => {
+    setShowPlanner(!showPlanner);
+    setShowDestinations(false);
+    setShowRecommendations(false);
+    setShowItineraries(false);
+  };
+
+  const navButtonStyle = {
+    border: "none",
+    borderRadius: "8px",
+    padding: "10px 16px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    backgroundColor: "#ffffff",
+    color: "#1d4ed8",
+  };
+
   return (
     <div
       style={{
         minHeight: "100vh",
         backgroundColor: "#f5f7fb",
-        paddingBottom: "60px",
+        fontFamily: "Arial, sans-serif",
       }}
     >
-      {/* ======================================
-          HERO
-      ====================================== */}
-      <section
+      {/* Header */}
+      <header
         style={{
           background:
-            "linear-gradient(135deg, #2563eb, #7c3aed)",
+            "linear-gradient(135deg, #1d4ed8, #2563eb)",
           color: "#ffffff",
-          padding: "70px 20px",
-          textAlign: "center",
+          padding: "20px 25px",
+          boxShadow: "0 3px 10px rgba(0,0,0,0.12)",
         }}
       >
-        <h1
+        <div
           style={{
-            fontSize: "48px",
-            margin: "0 0 15px 0",
-            fontWeight: "700",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "20px",
+            flexWrap: "wrap",
           }}
         >
-          GlobeTrotter 🌍
-        </h1>
+          <div>
+            <h1
+              style={{
+                margin: "0",
+                fontSize: "28px",
+              }}
+            >
+              GlobeTrotter 🌍
+            </h1>
 
-        <p
+            <p
+              style={{
+                margin: "5px 0 0 0",
+                fontSize: "14px",
+                opacity: "0.9",
+              }}
+            >
+              Your smart travel companion
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              style={navButtonStyle}
+              onClick={exploreDestinations}
+            >
+              Explore
+            </button>
+
+            <button
+              style={navButtonStyle}
+              onClick={getRecommendations}
+            >
+              Recommendations
+            </button>
+
+            <button
+              style={navButtonStyle}
+              onClick={openPlanner}
+            >
+              Plan Trip
+            </button>
+
+            <button
+              style={navButtonStyle}
+              onClick={loadItineraries}
+            >
+              My Itineraries
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          padding: "35px 20px",
+        }}
+      >
+        {/* Welcome Section */}
+        <section
           style={{
-            fontSize: "20px",
-            maxWidth: "700px",
-            margin: "0 auto 30px auto",
-            lineHeight: "1.6",
+            backgroundColor: "#ffffff",
+            borderRadius: "16px",
+            padding: "30px",
+            marginBottom: "30px",
+            boxShadow: "0 3px 12px rgba(0,0,0,0.06)",
+            textAlign: "center",
           }}
         >
-          Your smart travel assistant for
-          discovering destinations, getting
-          recommendations and planning
-          unforgettable trips.
-        </p>
+          <h2
+            style={{
+              margin: "0 0 10px 0",
+              fontSize: "30px",
+              color: "#172033",
+            }}
+          >
+            Discover Your Next Adventure ✈️
+          </h2>
 
-        <div>
+          <p
+            style={{
+              margin: "0 auto",
+              maxWidth: "700px",
+              color: "#5b6472",
+              lineHeight: "1.6",
+            }}
+          >
+            Explore destinations, discover personalized
+            recommendations, and create unforgettable travel
+            itineraries with GlobeTrotter.
+          </p>
+        </section>
+
+        {/* Quick Actions */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "15px",
+            marginBottom: "35px",
+          }}
+        >
           <button
             onClick={exploreDestinations}
             style={{
-              padding: "14px 24px",
-              margin: "8px",
+              padding: "16px",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "10px",
+              backgroundColor: "#2563eb",
+              color: "#ffffff",
+              fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "600",
+              fontSize: "15px",
             }}
           >
-            Explore Destinations
+            🌍 Explore Destinations
           </button>
 
           <button
             onClick={getRecommendations}
             style={{
-              padding: "14px 24px",
-              margin: "8px",
+              padding: "16px",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "10px",
+              backgroundColor: "#0f766e",
+              color: "#ffffff",
+              fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "600",
+              fontSize: "15px",
             }}
           >
-            Get Recommendations
+            ⭐ Get Recommendations
           </button>
 
           <button
-            onClick={planTrip}
+            onClick={openPlanner}
             style={{
-              padding: "14px 24px",
-              margin: "8px",
+              padding: "16px",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "10px",
+              backgroundColor: "#7c3aed",
+              color: "#ffffff",
+              fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "600",
+              fontSize: "15px",
             }}
           >
-            Plan My Trip
+            🗺️ Plan My Trip
           </button>
 
           <button
             onClick={loadItineraries}
             style={{
-              padding: "14px 24px",
-              margin: "8px",
+              padding: "16px",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "10px",
+              backgroundColor: "#ea580c",
+              color: "#ffffff",
+              fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "600",
+              fontSize: "15px",
             }}
           >
-            My Itineraries
+            📋 My Itineraries
           </button>
         </div>
-      </section>
 
-      {/* ======================================
-          ITINERARY PLANNER
-      ====================================== */}
-      {showPlanner && (
-        <section
-          style={{
-            padding: "50px 20px",
-          }}
-        >
-          <div
+        {/* Destinations */}
+        {showDestinations && (
+          <section>
+            <div style={{ marginBottom: "20px" }}>
+              <h2
+                style={{
+                  margin: "0 0 5px 0",
+                  color: "#172033",
+                }}
+              >
+                Explore Destinations
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "#6b7280",
+                }}
+              >
+                Discover amazing places around the world and
+                across Cameroon.
+              </p>
+            </div>
+
+            {loadingDestinations && (
+              <p>Loading destinations...</p>
+            )}
+
+            {destinationError && (
+              <p style={{ color: "red" }}>
+                {destinationError}
+              </p>
+            )}
+
+            {!loadingDestinations &&
+              !destinationError &&
+              destinations.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(240px, 1fr))",
+                    gap: "20px",
+                    alignItems: "stretch",
+                  }}
+                >
+                  {destinations.map((destination, index) => (
+                    <DestinationCard
+                      key={destination.id || index}
+                      destination={destination}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              )}
+          </section>
+        )}
+
+        {/* Recommendations */}
+        {showRecommendations && (
+          <section style={{ marginTop: "10px" }}>
+            <div style={{ marginBottom: "20px" }}>
+              <h2
+                style={{
+                  margin: "0 0 5px 0",
+                  color: "#172033",
+                }}
+              >
+                Recommended Destinations ⭐
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "#6b7280",
+                }}
+              >
+                Discover destinations selected from our travel
+                database.
+              </p>
+            </div>
+
+            {loadingRecommendations && (
+              <p>Loading recommendations...</p>
+            )}
+
+            {recommendationError && (
+              <p style={{ color: "red" }}>
+                {recommendationError}
+              </p>
+            )}
+
+            {!loadingRecommendations &&
+              !recommendationError &&
+              recommendations.length === 0 && (
+                <p>No recommendations found.</p>
+              )}
+
+            {!loadingRecommendations &&
+              !recommendationError &&
+              recommendations.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(240px, 1fr))",
+                    gap: "20px",
+                    alignItems: "stretch",
+                  }}
+                >
+                  {recommendations.map((destination, index) => (
+                    <DestinationCard
+                      key={destination.id || index}
+                      destination={destination}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              )}
+          </section>
+        )}
+
+        {/* Planner */}
+        {showPlanner && (
+          <section
             style={{
-              maxWidth: "600px",
-              margin: "0 auto",
+              marginTop: "10px",
+              padding: "28px",
+              borderRadius: "14px",
               backgroundColor: "#ffffff",
-              padding: "30px",
-              borderRadius: "12px",
-              boxShadow:
-                "0 4px 12px rgba(0, 0, 0, 0.10)",
+              boxShadow: "0 3px 12px rgba(0,0,0,0.07)",
             }}
           >
             <h2
               style={{
-                textAlign: "center",
-                fontSize: "32px",
-                marginBottom: "10px",
+                marginTop: 0,
+                color: "#172033",
               }}
             >
               Plan My Trip 🗺️
             </h2>
 
-            <p
-              style={{
-                textAlign: "center",
-                color: "#666",
-                marginBottom: "30px",
-              }}
-            >
-              Choose a destination and
-              specify how many days you
-              want to stay.
+            <p style={{ color: "#6b7280" }}>
+              Choose a destination and specify how many days
+              you want to stay.
             </p>
 
-            <form
-              onSubmit={createItinerary}
-            >
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: "600",
-                  marginBottom: "8px",
-                }}
-              >
-                Destination
-              </label>
+            <div style={{ marginBottom: "18px" }}>
+              <label>
+                <strong>Destination:</strong>{" "}
+                <select
+                  value={selectedDestination}
+                  onChange={(event) =>
+                    setSelectedDestination(event.target.value)
+                  }
+                  style={{
+                    padding: "9px",
+                    borderRadius: "6px",
+                    border: "1px solid #d1d5db",
+                    marginLeft: "5px",
+                  }}
+                >
+                  <option value="">
+                    -- Select a destination --
+                  </option>
 
-              <select
-                value={selectedDestination}
-                onChange={(event) =>
-                  setSelectedDestination(
-                    event.target.value
-                  )
-                }
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "20px",
-                  borderRadius: "6px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                }}
-              >
-                <option value="">
-                  -- Select a destination --
-                </option>
-
-                {destinations.map(
-                  (destination, index) => (
+                  {destinations.map((destination, index) => (
                     <option
-                      key={
-                        destination.id ||
-                        destination._id ||
-                        index
-                      }
-                      value={
-                        destination.name
-                      }
+                      key={destination.id || index}
+                      value={destination.name}
                     >
-                      {destination.name}
-                      {destination.country
-                        ? ` - ${destination.country}`
-                        : ""}
+                      {destination.name} - {destination.country}
                     </option>
-                  )
-                )}
-              </select>
-
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: "600",
-                  marginBottom: "8px",
-                }}
-              >
-                Number of Days
+                  ))}
+                </select>
               </label>
+            </div>
 
-              <input
-                type="number"
-                min="1"
-                max="365"
-                value={days}
-                onChange={(event) =>
-                  setDays(event.target.value)
-                }
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "20px",
-                  borderRadius: "6px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                  boxSizing: "border-box",
-                }}
-              />
+            <div style={{ marginBottom: "18px" }}>
+              <label>
+                <strong>Number of days:</strong>{" "}
+                <input
+                  type="number"
+                  min="1"
+                  value={days}
+                  onChange={(event) =>
+                    setDays(event.target.value)
+                  }
+                  style={{
+                    width: "80px",
+                    padding: "9px",
+                    borderRadius: "6px",
+                    border: "1px solid #d1d5db",
+                  }}
+                />
+              </label>
+            </div>
 
-              <button
-                type="submit"
-                disabled={creatingItinerary}
-                style={{
-                  width: "100%",
-                  padding: "14px",
-                  backgroundColor:
-                    creatingItinerary
-                      ? "#999"
-                      : "#2563eb",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: creatingItinerary
-                    ? "not-allowed"
-                    : "pointer",
-                  fontSize: "17px",
-                  fontWeight: "600",
-                }}
-              >
-                {creatingItinerary
-                  ? "Creating..."
-                  : "Create Itinerary"}
-              </button>
-            </form>
-
-            {itinerarySuccess && (
-              <p
-                style={{
-                  marginTop: "20px",
-                  padding: "12px",
-                  backgroundColor: "#dcfce7",
-                  color: "#166534",
-                  borderRadius: "6px",
-                  textAlign: "center",
-                  fontWeight: "600",
-                }}
-              >
-                ✅ {itinerarySuccess}
-              </p>
-            )}
+            <button
+              onClick={createItinerary}
+              disabled={creatingItinerary}
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                borderRadius: "7px",
+                backgroundColor: "#2563eb",
+                color: "#ffffff",
+                fontWeight: "bold",
+                cursor: creatingItinerary
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+            >
+              {creatingItinerary
+                ? "Creating..."
+                : "Create Itinerary"}
+            </button>
 
             {itineraryError && (
-              <p
-                style={{
-                  marginTop: "20px",
-                  padding: "12px",
-                  backgroundColor: "#fee2e2",
-                  color: "#991b1b",
-                  borderRadius: "6px",
-                  textAlign: "center",
-                }}
-              >
+              <p style={{ color: "red" }}>
                 {itineraryError}
               </p>
             )}
-          </div>
-        </section>
-      )}
 
-      {/* ======================================
-          DESTINATIONS
-      ====================================== */}
-      {showDestinations && (
-        <section
-          style={{
-            padding: "50px 20px",
-          }}
-        >
-          <h2
-            style={{
-              textAlign: "center",
-              fontSize: "32px",
-              marginBottom: "30px",
-            }}
-          >
-            Explore Destinations
-          </h2>
+            {itinerarySuccess && (
+              <p style={{ color: "green" }}>
+                {itinerarySuccess}
+              </p>
+            )}
+          </section>
+        )}
 
-          {loadingDestinations && (
-            <p
+        {/* Itineraries */}
+        {showItineraries && (
+          <section style={{ marginTop: "10px" }}>
+            <h2
               style={{
-                textAlign: "center",
+                marginBottom: "20px",
+                color: "#172033",
               }}
             >
-              Loading destinations...
-            </p>
-          )}
+              My Itineraries 📋
+            </h2>
 
-          {destinationError && (
-            <p
-              style={{
-                textAlign: "center",
-                color: "red",
-              }}
-            >
-              {destinationError}
-            </p>
-          )}
+            {loadingItineraries && (
+              <p>Loading itineraries...</p>
+            )}
 
-          {destinations.length > 0 && (
-            <div
-              style={{
-                maxWidth: "1100px",
-                margin: "0 auto",
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "20px",
-              }}
-            >
-              {destinations.map(
-                (destination, index) => (
-                  <DestinationCard
-                    key={
-                      destination.id ||
-                      destination._id ||
-                      index
-                    }
-                    destination={destination}
-                  />
-                )
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ======================================
-          RECOMMENDATIONS
-      ====================================== */}
-      {showRecommendations && (
-        <section
-          style={{
-            padding: "50px 20px",
-          }}
-        >
-          <h2
-            style={{
-              textAlign: "center",
-              fontSize: "32px",
-              marginBottom: "30px",
-            }}
-          >
-            Recommended Destinations
-          </h2>
-
-          {loadingRecommendations && (
-            <p
-              style={{
-                textAlign: "center",
-              }}
-            >
-              Loading recommendations...
-            </p>
-          )}
-
-          {recommendationError && (
-            <p
-              style={{
-                textAlign: "center",
-                color: "red",
-              }}
-            >
-              {recommendationError}
-            </p>
-          )}
-
-          {recommendations.length > 0 && (
-            <div
-              style={{
-                maxWidth: "1100px",
-                margin: "0 auto",
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "20px",
-              }}
-            >
-              {recommendations.map(
-                (destination, index) => (
-                  <DestinationCard
-                    key={
-                      destination.id ||
-                      destination._id ||
-                      index
-                    }
-                    destination={destination}
-                    recommended={true}
-                  />
-                )
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ======================================
-          ITINERARIES
-      ====================================== */}
-      {showItineraries && (
-        <section
-          style={{
-            padding: "50px 20px",
-          }}
-        >
-          <h2
-            style={{
-              textAlign: "center",
-              fontSize: "32px",
-              marginBottom: "30px",
-            }}
-          >
-            My Itineraries 📋
-          </h2>
-
-          {loadingItineraries && (
-            <p
-              style={{
-                textAlign: "center",
-              }}
-            >
-              Loading itineraries...
-            </p>
-          )}
-
-          {itineraryError && (
-            <p
-              style={{
-                textAlign: "center",
-                color: "red",
-              }}
-            >
-              {itineraryError}
-            </p>
-          )}
-
-          {!loadingItineraries &&
-            itineraries.length === 0 &&
-            !itineraryError && (
-              <p
-                style={{
-                  textAlign: "center",
-                }}
-              >
-                No itineraries found.
+            {itineraryError && (
+              <p style={{ color: "red" }}>
+                {itineraryError}
               </p>
             )}
 
-          {itineraries.length > 0 && (
-            <div
-              style={{
-                maxWidth: "900px",
-                margin: "0 auto",
-                display: "grid",
-                gap: "20px",
-              }}
-            >
-              {itineraries.map(
-                (itinerary, index) => (
-                  <div
-                    key={
-                      itinerary.id ||
-                      itinerary._id ||
-                      index
-                    }
+            {!loadingItineraries &&
+              !itineraryError &&
+              itineraries.length === 0 && (
+                <p>No itineraries found.</p>
+              )}
+
+            {!loadingItineraries &&
+              !itineraryError &&
+              itineraries.map((itinerary, index) => (
+                <div
+                  key={itinerary.id || index}
+                  style={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "12px",
+                    padding: "18px",
+                    marginBottom: "15px",
+                    boxShadow:
+                      "0 2px 8px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <h3
                     style={{
-                      backgroundColor:
-                        "#ffffff",
-                      padding: "24px",
-                      borderRadius: "12px",
-                      boxShadow:
-                        "0 4px 12px rgba(0, 0, 0, 0.10)",
+                      marginTop: 0,
+                      color: "#172033",
                     }}
                   >
-                    <h3
-                      style={{
-                        fontSize: "22px",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      ✈️{" "}
-                      {itinerary.destination}
-                    </h3>
+                    📍 {itinerary.destination || "Trip"}
+                  </h3>
 
-                    <p>
-                      <strong>User:</strong>{" "}
-                      {itinerary.userId ||
-                        "Unknown"}
-                    </p>
+                  <p>
+                    <strong>Days:</strong>{" "}
+                    {itinerary.days || "N/A"}
+                  </p>
 
-                    <p>
-                      <strong>Duration:</strong>{" "}
-                      {itinerary.days} day
-                      {Number(
-                        itinerary.days
-                      ) !== 1
-                        ? "s"
-                        : ""}
-                    </p>
+                  <p>
+                    <strong>User:</strong>{" "}
+                    {itinerary.userId || "demo-user"}
+                  </p>
+                </div>
+              ))}
+          </section>
+        )}
+      </main>
 
-                    <p>
-                      <strong>Itinerary ID:</strong>{" "}
-                      {itinerary.id ||
-                        itinerary._id ||
-                        "N/A"}
-                    </p>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </section>
-      )}
+      {/* Footer */}
+      <footer
+        style={{
+          marginTop: "40px",
+          padding: "25px",
+          textAlign: "center",
+          backgroundColor: "#172033",
+          color: "#ffffff",
+        }}
+      >
+        <strong>GlobeTrotter 🌍</strong>
+
+        <p
+          style={{
+            margin: "7px 0 0 0",
+            fontSize: "13px",
+            opacity: "0.8",
+          }}
+        >
+          Discover. Plan. Travel.
+        </p>
+      </footer>
     </div>
   );
 }

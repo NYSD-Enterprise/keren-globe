@@ -8,22 +8,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// =====================================================
-// DESTINATION DATA
-// International + Cameroon destinations
-// =====================================================
-
 const destinations = [
-  // ============================
-  // INTERNATIONAL DESTINATIONS
-  // ============================
-
   {
     id: 1,
     name: "Paris",
     country: "France",
     category: "City",
-    description: "The City of Light",
+    description:
+      "The City of Light, famous for the Eiffel Tower, art, fashion, and culture.",
     latitude: 48.8566,
     longitude: 2.3522,
   },
@@ -33,7 +25,8 @@ const destinations = [
     name: "Dubai",
     country: "UAE",
     category: "Luxury",
-    description: "Modern city with world-class attractions",
+    description:
+      "A modern city famous for world-class attractions, shopping, and architecture.",
     latitude: 25.2048,
     longitude: 55.2708,
   },
@@ -43,7 +36,8 @@ const destinations = [
     name: "Cape Town",
     country: "South Africa",
     category: "Beach",
-    description: "Beautiful coastline and mountains",
+    description:
+      "A beautiful coastal city surrounded by mountains, beaches, and natural attractions.",
     latitude: -33.9249,
     longitude: 18.4241,
   },
@@ -53,79 +47,60 @@ const destinations = [
     name: "Nairobi",
     country: "Kenya",
     category: "Wildlife",
-    description: "Safari and national parks",
+    description:
+      "A vibrant city known for wildlife, safari experiences, and national parks.",
     latitude: -1.2921,
     longitude: 36.8219,
   },
 
   {
     id: 5,
-    name: "Tokyo",
-    country: "Japan",
-    category: "Culture",
-    description: "A vibrant city blending tradition and technology",
-    latitude: 35.6762,
-    longitude: 139.6503,
-  },
-
-  {
-    id: 6,
-    name: "New York",
-    country: "USA",
-    category: "City",
-    description: "The city that never sleeps",
-    latitude: 40.7128,
-    longitude: -74.006,
-  },
-
-  {
-    id: 7,
     name: "London",
     country: "United Kingdom",
     category: "History",
-    description: "A historic city filled with culture and landmarks",
+    description:
+      "A historic city filled with famous landmarks, museums, culture, and entertainment.",
     latitude: 51.5074,
     longitude: -0.1278,
   },
 
   {
-    id: 8,
+    id: 6,
     name: "Rome",
     country: "Italy",
     category: "History",
-    description: "Ancient history, architecture, and Italian culture",
+    description:
+      "An ancient city famous for its architecture, historic landmarks, and Italian culture.",
     latitude: 41.9028,
     longitude: 12.4964,
   },
 
   {
-    id: 9,
+    id: 7,
     name: "Cairo",
     country: "Egypt",
     category: "Ancient",
-    description: "Gateway to the pyramids and ancient Egyptian history",
+    description:
+      "A historic city and gateway to the pyramids and ancient Egyptian civilization.",
     latitude: 30.0444,
     longitude: 31.2357,
   },
 
-  // ============================
-  // CAMEROON DESTINATIONS
-  // ============================
-
   {
-    id: 10,
+    id: 8,
     name: "ICT University",
     country: "Cameroon",
     city: "Yaoundé",
     area: "Messassi",
     category: "Education",
-    description: "ICT University campus in Messassi, Yaoundé",
+    description:
+      "ICT University campus in Messassi, Yaoundé.",
     latitude: 3.9436,
     longitude: 11.5678,
   },
 
   {
-    id: 11,
+    id: 9,
     name: "Mount Cameroon",
     country: "Cameroon",
     city: "Buea",
@@ -138,20 +113,20 @@ const destinations = [
   },
 
   {
-    id: 12,
+    id: 10,
     name: "Kribi Beach",
     country: "Cameroon",
     city: "Kribi",
     area: "South Region",
     category: "Beach",
     description:
-      "A beautiful coastal destination known for its beaches, ocean views, and relaxed atmosphere.",
+      "A beautiful coastal destination known for beaches, ocean views, and a relaxed atmosphere.",
     latitude: 2.9406,
     longitude: 9.9103,
   },
 
   {
-    id: 13,
+    id: 11,
     name: "Limbe Beach",
     country: "Cameroon",
     city: "Limbe",
@@ -164,7 +139,7 @@ const destinations = [
   },
 
   {
-    id: 14,
+    id: 12,
     name: "Mefou National Park",
     country: "Cameroon",
     city: "Yaoundé",
@@ -177,7 +152,7 @@ const destinations = [
   },
 
   {
-    id: 15,
+    id: 13,
     name: "Waza National Park",
     country: "Cameroon",
     city: "Waza",
@@ -190,46 +165,7 @@ const destinations = [
   },
 
   {
-    id: 16,
-    name: "Ekom-Nkam Waterfalls",
-    country: "Cameroon",
-    city: "Melong",
-    area: "Littoral Region",
-    category: "Nature",
-    description:
-      "Spectacular waterfalls surrounded by lush tropical scenery in the Littoral Region.",
-    latitude: 5.1133,
-    longitude: 9.9667,
-  },
-
-  {
-    id: 17,
-    name: "Foumban",
-    country: "Cameroon",
-    city: "Foumban",
-    area: "West Region",
-    category: "Culture",
-    description:
-      "A historic cultural destination famous for traditional crafts, royal heritage, and the Bamoun culture.",
-    latitude: 5.7266,
-    longitude: 10.8980,
-  },
-
-  {
-    id: 18,
-    name: "Dschang",
-    country: "Cameroon",
-    city: "Dschang",
-    area: "West Region",
-    category: "Culture",
-    description:
-      "A scenic highland destination known for its cool climate, landscapes, and cultural heritage.",
-    latitude: 5.4475,
-    longitude: 10.0665,
-  },
-
-  {
-    id: 19,
+    id: 14,
     name: "Bamenda",
     country: "Cameroon",
     city: "Bamenda",
@@ -242,22 +178,31 @@ const destinations = [
   },
 
   {
-    id: 20,
+    id: 15,
+    name: "National Museum of Yaoundé",
+    country: "Cameroon",
+    city: "Yaoundé",
+    area: "Centre Region",
+    category: "Museum",
+    description:
+      "A cultural museum showcasing Cameroon's history, heritage, art, and traditional culture.",
+    latitude: 3.8626,
+    longitude: 11.5186,
+  },
+
+  {
+    id: 16,
     name: "Yaoundé",
     country: "Cameroon",
     city: "Yaoundé",
     area: "Centre Region",
     category: "City",
     description:
-      "The capital city of Cameroon, known for its hills, cultural attractions, institutions, and vibrant city life.",
+      "The capital city of Cameroon, known for its green hills, cultural attractions, museums, markets, and vibrant city life.",
     latitude: 3.8480,
     longitude: 11.5021,
   },
 ];
-
-// =====================================================
-// HOME ROUTE
-// =====================================================
 
 app.get("/", (req, res) => {
   res.json({
@@ -267,17 +212,9 @@ app.get("/", (req, res) => {
   });
 });
 
-// =====================================================
-// GET ALL DESTINATIONS
-// =====================================================
-
 app.get("/destinations", (req, res) => {
   res.status(200).json(destinations);
 });
-
-// =====================================================
-// GET ONE DESTINATION
-// =====================================================
 
 app.get("/destinations/:id", (req, res) => {
   const destination = destinations.find(
@@ -292,10 +229,6 @@ app.get("/destinations/:id", (req, res) => {
 
   res.status(200).json(destination);
 });
-
-// =====================================================
-// START SERVER
-// =====================================================
 
 const PORT = process.env.PORT || 5002;
 
