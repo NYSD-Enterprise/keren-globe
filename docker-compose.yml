@@ -9,13 +9,14 @@
       context: ./api-gateway
     container_name: globetrotter-api-gateway
     ports:
-      - "5001:5001"
+      - "127.0.0.1:2024:5001"
     environment:
       PORT: 5001
       DESTINATION_SERVICE: http://destination-service:5002
       RECOMMENDATION_SERVICE: http://recommendation-service:5004
       ITINERARY_SERVICE: http://itinerary-service:5003
       AUTH_SERVICE: http://auth-service:5005
+      CHAT_SERVICE: http://chat-service:5006
 
     depends_on:
       destination-service:
@@ -25,6 +26,8 @@
       itinerary-service:
         condition: service_healthy
       auth-service:
+        condition: service_healthy
+      chat-service:
         condition: service_healthy
 
     healthcheck:
@@ -51,8 +54,6 @@
     build:
       context: ./auth-service
     container_name: globetrotter-auth-service
-    ports:
-      - "5005:5005"
     env_file:
       - ./auth-service/.env
     environment:
@@ -82,8 +83,6 @@
     build:
       context: ./destination-service
     container_name: globetrotter-destination-service
-    ports:
-      - "5002:5002"
     environment:
       PORT: 5002
 
@@ -111,8 +110,6 @@
     build:
       context: ./itinerary-service
     container_name: globetrotter-itinerary-service
-    ports:
-      - "5003:5003"
     environment:
       PORT: 5003
 
@@ -140,8 +137,6 @@
     build:
       context: ./recommendation-service
     container_name: globetrotter-recommendation-service
-    ports:
-      - "5004:5004"
     environment:
       PORT: 5004
       DESTINATION_SERVICE: http://destination-service:5002
@@ -157,6 +152,33 @@
           "node",
           "-e",
           "fetch('http://localhost:5004/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    restart: unless-stopped
+
+
+  # ==========================================
+  # CHAT SERVICE
+  # ==========================================
+
+  chat-service:
+    build:
+      context: ./chat-service
+    container_name: globetrotter-chat-service
+    environment:
+      PORT: 5006
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5006/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
         ]
       interval: 10s
       timeout: 5s

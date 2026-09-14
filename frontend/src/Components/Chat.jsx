@@ -1,6 +1,9 @@
  import { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:5001";
+// In production the app is served behind nginx, which proxies /api to the gateway.
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? "/api" : "http://localhost:5001");
 
 function Chat() {
   const [messages, setMessages] = useState([]);

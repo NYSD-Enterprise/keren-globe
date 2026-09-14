@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import API from "../Services/Api";
 
 function Login() {
   const navigate = useNavigate();
@@ -17,13 +17,10 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/login",
-        {
-          email,
-          password,
-        }
-      );
+      const response = await API.post("/login", {
+        email,
+        password,
+      });
 
       // Save JWT token
       if (response.data.token) {
