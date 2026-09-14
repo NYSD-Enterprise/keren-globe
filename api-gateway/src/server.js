@@ -58,7 +58,7 @@ app.get("/health", (req, res) => {
 // DESTINATIONS
 // ===============================
 
-app.get("/destinations", async (req, res) => {
+app.get("/destinations", requireAuth, async (req, res) => {
   try {
     const response = await fetch(
       DESTINATION_SERVICE + "/destinations"
@@ -85,7 +85,7 @@ app.get("/destinations", async (req, res) => {
 // SINGLE DESTINATION
 // ===============================
 
-app.get("/destinations/:id", async (req, res) => {
+app.get("/destinations/:id", requireAuth, async (req, res) => {
   try {
     const response = await fetch(
       DESTINATION_SERVICE +

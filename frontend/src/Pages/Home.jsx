@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../Services/Api";
-import { getUser } from "../Services/auth";
 
 const destinationImages = [
   "/images/Paris.jpg",
@@ -137,7 +136,6 @@ function DestinationCard({ destination, index }) {
 
 function Home() {
   const navigate = useNavigate();
-  const currentUser = getUser();
 
   const [destinations, setDestinations] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -162,16 +160,6 @@ function Home() {
   const [selectedDestinations, setSelectedDestinations] = useState([]);
   const [tripTitle, setTripTitle] = useState("");
   const [days, setDays] = useState(5);
-
-  // Recommendations, planning and itineraries are login-only features.
-  const requireLogin = (action) => () => {
-    if (!currentUser) {
-      navigate("/login", { state: { from: "/" } });
-      return;
-    }
-
-    action();
-  };
 
   const loadDestinations = async () => {
     setDestinationError("");
@@ -362,6 +350,7 @@ function Home() {
     >
       {/* Header */}
       <header
+        className="app-header"
         style={{
           background:
             "linear-gradient(135deg, #1d4ed8, #2563eb)",
@@ -371,6 +360,7 @@ function Home() {
         }}
       >
         <div
+          className="app-header-inner"
           style={{
             maxWidth: "1200px",
             margin: "0 auto",
@@ -403,6 +393,7 @@ function Home() {
           </div>
 
           <div
+            className="app-header-actions"
             style={{
               display: "flex",
               gap: "8px",
@@ -418,21 +409,21 @@ function Home() {
 
             <button
               style={navButtonStyle}
-              onClick={requireLogin(getRecommendations)}
+              onClick={getRecommendations}
             >
               Recommendations
             </button>
 
             <button
               style={navButtonStyle}
-              onClick={requireLogin(openPlanner)}
+              onClick={openPlanner}
             >
               Plan Trip
             </button>
 
             <button
               style={navButtonStyle}
-              onClick={requireLogin(loadItineraries)}
+              onClick={loadItineraries}
             >
               My Itineraries
             </button>
@@ -510,7 +501,7 @@ function Home() {
           </button>
 
           <button
-            onClick={requireLogin(getRecommendations)}
+            onClick={getRecommendations}
             style={{
               padding: "16px",
               border: "none",
@@ -526,7 +517,7 @@ function Home() {
           </button>
 
           <button
-            onClick={requireLogin(openPlanner)}
+            onClick={openPlanner}
             style={{
               padding: "16px",
               border: "none",
@@ -542,7 +533,7 @@ function Home() {
           </button>
 
           <button
-            onClick={requireLogin(loadItineraries)}
+            onClick={loadItineraries}
             style={{
               padding: "16px",
               border: "none",

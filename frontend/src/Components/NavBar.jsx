@@ -16,14 +16,14 @@ function Navbar() {
   };
 
   return (
-    <nav style={navStyle}>
+    <nav className="app-navbar" style={navStyle}>
       {/* LOGO */}
       <Link to="/" style={logoStyle}>
         GlobeTrotter
       </Link>
 
       {/* NAVIGATION */}
-      <div style={linksStyle}>
+      <div className="app-navbar-links" style={linksStyle}>
         <Link to="/" style={linkStyle}>
           Home
         </Link>
