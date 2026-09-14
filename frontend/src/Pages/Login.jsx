@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import API from "../Services/Api";
+import { saveSession } from "../Services/auth";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,24 +24,15 @@ function Login() {
         password,
       });
 
-      // Save JWT token
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-      }
-
-      // Save user information
-      if (response.data.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(response.data.user)
-        );
-      }
+      saveSession(response.data.token, response.data.user);
 
       setMessage("Login successful! 🎉");
 
-      // Go to Home after successful login
+      // Return to the page that required login, otherwise Home.
+      const target = location.state?.from || "/";
+
       setTimeout(() => {
-        navigate("/");
+        navigate(target, { replace: true });
       }, 800);
 
     } catch (error) {

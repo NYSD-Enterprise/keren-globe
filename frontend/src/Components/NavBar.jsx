@@ -1,26 +1,14 @@
     import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getUser, clearSession } from "../Services/auth";
 
 function Navbar() {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser);
-      } catch {
-        return null;
-      }
-    }
-
-    return null;
-  });
+  const [user, setUser] = useState(getUser);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearSession();
 
     setUser(null);
 

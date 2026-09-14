@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../Services/Api";
+import { getUser } from "../Services/auth";
 
 const destinationImages = [
   "/images/Paris.jpg",
@@ -134,6 +136,9 @@ function DestinationCard({ destination, index }) {
 }
 
 function Home() {
+  const navigate = useNavigate();
+  const currentUser = getUser();
+
   const [destinations, setDestinations] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [itineraries, setItineraries] = useState([]);
@@ -154,15 +159,21 @@ function Home() {
   const [itineraryError, setItineraryError] = useState("");
   const [itinerarySuccess, setItinerarySuccess] = useState("");
 
-  const [selectedDestination, setSelectedDestination] = useState("");
+  const [selectedDestinations, setSelectedDestinations] = useState([]);
+  const [tripTitle, setTripTitle] = useState("");
   const [days, setDays] = useState(5);
 
-  const exploreDestinations = async () => {
-    setShowDestinations(true);
-    setShowRecommendations(false);
-    setShowPlanner(false);
-    setShowItineraries(false);
+  // Recommendations, planning and itineraries are login-only features.
+  const requireLogin = (action) => () => {
+    if (!currentUser) {
+      navigate("/login", { state: { from: "/" } });
+      return;
+    }
 
+    action();
+  };
+
+  const loadDestinations = async () => {
     setDestinationError("");
 
     try {
@@ -170,18 +181,33 @@ function Home() {
 
       const response = await API.get("/destinations");
 
-      console.log("Destinations:", response.data);
+      const list = Array.isArray(response.data)
+        ? response.data
+        : response.data.destinations || [];
 
-      setDestinations(response.data);
+      setDestinations(list);
+
+      return list;
     } catch (error) {
       console.error("Destination error:", error);
 
       setDestinationError(
         "Unable to load destinations. Make sure the API Gateway and Destination Service are running."
       );
+
+      return [];
     } finally {
       setLoadingDestinations(false);
     }
+  };
+
+  const exploreDestinations = async () => {
+    setShowDestinations(true);
+    setShowRecommendations(false);
+    setShowPlanner(false);
+    setShowItineraries(false);
+
+    await loadDestinations();
   };
 
   const getRecommendations = async () => {
@@ -261,33 +287,24 @@ function Home() {
     setItineraryError("");
     setItinerarySuccess("");
 
-    if (!selectedDestination) {
-      setItineraryError("Please select a destination.");
+    if (selectedDestinations.length === 0) {
+      setItineraryError("Please select at least one destination.");
       return;
     }
 
     try {
       setCreatingItinerary(true);
 
-      console.log("Creating itinerary:", {
-        userId: "demo-user",
-        destination: selectedDestination,
+      await API.post("/itineraries", {
+        title: tripTitle,
+        destinations: selectedDestinations,
         days: Number(days),
       });
 
-      const response = await API.post("/itineraries", {
-        userId: "demo-user",
-        destination: selectedDestination,
-        days: Number(days),
-      });
+      setItinerarySuccess("Itinerary created successfully!");
 
-      console.log("Created itinerary:", response.data);
-
-      setItinerarySuccess(
-        "Itinerary created successfully!"
-      );
-
-      setSelectedDestination("");
+      setSelectedDestinations([]);
+      setTripTitle("");
       setDays(5);
 
       await loadItineraries();
@@ -295,18 +312,33 @@ function Home() {
       console.error("Create itinerary error:", error);
 
       setItineraryError(
-        "Unable to create itinerary. Make sure the API Gateway and Itinerary Service are running."
+        error.response?.data?.message ||
+          "Unable to create itinerary. Please try again."
       );
     } finally {
       setCreatingItinerary(false);
     }
   };
 
-  const openPlanner = () => {
-    setShowPlanner(!showPlanner);
+  const toggleDestination = (name) => {
+    setSelectedDestinations((current) =>
+      current.includes(name)
+        ? current.filter((item) => item !== name)
+        : [...current, name]
+    );
+  };
+
+  const openPlanner = async () => {
+    const opening = !showPlanner;
+
+    setShowPlanner(opening);
     setShowDestinations(false);
     setShowRecommendations(false);
     setShowItineraries(false);
+
+    if (opening && destinations.length === 0) {
+      await loadDestinations();
+    }
   };
 
   const navButtonStyle = {
@@ -386,21 +418,21 @@ function Home() {
 
             <button
               style={navButtonStyle}
-              onClick={getRecommendations}
+              onClick={requireLogin(getRecommendations)}
             >
               Recommendations
             </button>
 
             <button
               style={navButtonStyle}
-              onClick={openPlanner}
+              onClick={requireLogin(openPlanner)}
             >
               Plan Trip
             </button>
 
             <button
               style={navButtonStyle}
-              onClick={loadItineraries}
+              onClick={requireLogin(loadItineraries)}
             >
               My Itineraries
             </button>
@@ -478,7 +510,7 @@ function Home() {
           </button>
 
           <button
-            onClick={getRecommendations}
+            onClick={requireLogin(getRecommendations)}
             style={{
               padding: "16px",
               border: "none",
@@ -494,7 +526,7 @@ function Home() {
           </button>
 
           <button
-            onClick={openPlanner}
+            onClick={requireLogin(openPlanner)}
             style={{
               padding: "16px",
               border: "none",
@@ -510,7 +542,7 @@ function Home() {
           </button>
 
           <button
-            onClick={loadItineraries}
+            onClick={requireLogin(loadItineraries)}
             style={{
               padding: "16px",
               border: "none",
@@ -669,39 +701,95 @@ function Home() {
             </h2>
 
             <p style={{ color: "#6b7280" }}>
-              Choose a destination and specify how many days
-              you want to stay.
+              Pick one or more destinations and specify how many days
+              you want to travel.
             </p>
 
             <div style={{ marginBottom: "18px" }}>
-              <label>
-                <strong>Destination:</strong>{" "}
-                <select
-                  value={selectedDestination}
-                  onChange={(event) =>
-                    setSelectedDestination(event.target.value)
-                  }
-                  style={{
-                    padding: "9px",
-                    borderRadius: "6px",
-                    border: "1px solid #d1d5db",
-                    marginLeft: "5px",
-                  }}
-                >
-                  <option value="">
-                    -- Select a destination --
-                  </option>
-
-                  {destinations.map((destination, index) => (
-                    <option
-                      key={destination.id || index}
-                      value={destination.name}
-                    >
-                      {destination.name} - {destination.country}
-                    </option>
-                  ))}
-                </select>
+              <label htmlFor="trip-title">
+                <strong>Trip name (optional):</strong>
               </label>
+
+              <input
+                id="trip-title"
+                type="text"
+                value={tripTitle}
+                onChange={(event) => setTripTitle(event.target.value)}
+                placeholder="Summer in Europe"
+                style={{
+                  display: "block",
+                  marginTop: "6px",
+                  width: "100%",
+                  maxWidth: "360px",
+                  padding: "9px",
+                  borderRadius: "6px",
+                  border: "1px solid #d1d5db",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "18px" }}>
+              <strong>
+                Destinations ({selectedDestinations.length} selected):
+              </strong>
+
+              {loadingDestinations && (
+                <p style={{ color: "#6b7280" }}>Loading destinations...</p>
+              )}
+
+              {!loadingDestinations && destinations.length === 0 && (
+                <p style={{ color: "#6b7280" }}>
+                  No destinations available right now.
+                </p>
+              )}
+
+              <div
+                style={{
+                  marginTop: "10px",
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "8px",
+                  maxHeight: "260px",
+                  overflowY: "auto",
+                }}
+              >
+                {destinations.map((destination, index) => {
+                  const checked = selectedDestinations.includes(
+                    destination.name
+                  );
+
+                  return (
+                    <label
+                      key={destination.id || index}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "9px",
+                        padding: "10px 12px",
+                        borderRadius: "8px",
+                        border: checked
+                          ? "1px solid #2563eb"
+                          : "1px solid #e5e7eb",
+                        backgroundColor: checked ? "#eff6ff" : "#ffffff",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          toggleDestination(destination.name)
+                        }
+                      />
+
+                      <span style={{ fontSize: "14px" }}>
+                        {destination.name} - {destination.country}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div style={{ marginBottom: "18px" }}>
@@ -791,6 +879,17 @@ function Home() {
               itineraries.map((itinerary, index) => (
                 <div
                   key={itinerary.id || index}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    navigate(`/itineraries/${itinerary.id}`)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigate(`/itineraries/${itinerary.id}`);
+                    }
+                  }}
                   style={{
                     backgroundColor: "#ffffff",
                     border: "1px solid #e5e7eb",
@@ -799,6 +898,7 @@ function Home() {
                     marginBottom: "15px",
                     boxShadow:
                       "0 2px 8px rgba(0,0,0,0.06)",
+                    cursor: "pointer",
                   }}
                 >
                   <h3
@@ -807,17 +907,29 @@ function Home() {
                       color: "#172033",
                     }}
                   >
-                    📍 {itinerary.destination || "Trip"}
+                    🗺️ {itinerary.title || "Trip"}
                   </h3>
+
+                  <p style={{ color: "#4b5563" }}>
+                    📍{" "}
+                    {(itinerary.destinations || []).join(" → ") ||
+                      "No destinations"}
+                  </p>
 
                   <p>
                     <strong>Days:</strong>{" "}
                     {itinerary.days || "N/A"}
                   </p>
 
-                  <p>
-                    <strong>User:</strong>{" "}
-                    {itinerary.userId || "demo-user"}
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#2563eb",
+                      fontWeight: "600",
+                      fontSize: "14px",
+                    }}
+                  >
+                    View details →
                   </p>
                 </div>
               ))}

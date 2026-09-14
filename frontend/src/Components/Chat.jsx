@@ -1,13 +1,12 @@
  import { useEffect, useState } from "react";
-
-// In production the app is served behind nginx, which proxies /api to the gateway.
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? "/api" : "http://localhost:5001");
+import API from "../Services/Api";
+import { getUser } from "../Services/auth";
 
 function Chat() {
+  const currentUser = getUser();
+  const username = currentUser?.username || "Traveler";
+
   const [messages, setMessages] = useState([]);
-  const [username, setUsername] = useState("Traveler");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -17,14 +16,9 @@ function Chat() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/chat/messages`);
+      const response = await API.get("/chat/messages");
 
-      if (!response.ok) {
-        throw new Error("Unable to load chat messages.");
-      }
-
-      const data = await response.json();
-      setMessages(data.messages || []);
+      setMessages(response.data.messages || []);
     } catch (err) {
       console.error("CHAT LOAD ERROR:", err);
       setError("Unable to connect to the chat service.");
@@ -54,20 +48,9 @@ function Chat() {
       setSending(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/chat/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim() || "Traveler",
-          message: message.trim(),
-        }),
+      await API.post("/chat/messages", {
+        message: message.trim(),
       });
-
-      if (!response.ok) {
-        throw new Error("Unable to send message.");
-      }
 
       setMessage("");
       await loadMessages();
@@ -90,7 +73,7 @@ function Chat() {
             </p>
           </div>
 
-          <span className="chat-status">Online</span>
+          <span className="chat-status">{username}</span>
         </div>
 
         <div className="chat-messages">
@@ -135,17 +118,9 @@ function Chat() {
         <form className="chat-form" onSubmit={sendMessage}>
           <input
             type="text"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="Your name"
-            aria-label="Your name"
-          />
-
-          <input
-            type="text"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
-            placeholder="Write a message..."
+            placeholder={`Write a message as ${username}...`}
             aria-label="Chat message"
             disabled={sending}
           />

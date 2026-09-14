@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
+const requireAuth = require("./middleware/requireAuth");
+
 const app = express();
 
 app.use(cors());
@@ -112,7 +114,7 @@ app.get("/destinations/:id", async (req, res) => {
 // RECOMMENDATIONS
 // ===============================
 
-app.get("/recommendations", async (req, res) => {
+app.get("/recommendations", requireAuth, async (req, res) => {
   try {
     let url =
       RECOMMENDATION_SERVICE + "/recommendations";
@@ -149,13 +151,15 @@ app.get("/recommendations", async (req, res) => {
 });
 
 // ===============================
-// GET ITINERARIES
+// GET ITINERARIES (own only)
 // ===============================
 
-app.get("/itineraries", async (req, res) => {
+app.get("/itineraries", requireAuth, async (req, res) => {
   try {
     const response = await fetch(
-      ITINERARY_SERVICE + "/itineraries"
+      ITINERARY_SERVICE +
+        "/itineraries/user/" +
+        encodeURIComponent(req.user.id)
     );
 
     const data = await response.json();
@@ -179,51 +183,49 @@ app.get("/itineraries", async (req, res) => {
 });
 
 // ===============================
-// GET USER ITINERARIES
+// GET SINGLE ITINERARY
 // ===============================
 
-app.get(
-  "/itineraries/user/:userId",
-  async (req, res) => {
-    try {
-      const response = await fetch(
-        ITINERARY_SERVICE +
-          "/itineraries/user/" +
-          req.params.userId
-      );
+app.get("/itineraries/:id", requireAuth, async (req, res) => {
+  try {
+    const response = await fetch(
+      ITINERARY_SERVICE +
+        "/itineraries/" +
+        encodeURIComponent(req.params.id)
+    );
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        return res.status(response.status).json(data);
-      }
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
 
-      res.json(data);
-    } catch (error) {
-      console.error(
-        "USER ITINERARY ERROR:",
-        error.message
-      );
-
-      res.status(503).json({
-        message: "Itinerary Service unavailable",
-        error: error.message
+    if (data.userId !== req.user.id) {
+      return res.status(403).json({
+        message: "This itinerary belongs to another traveler"
       });
     }
+
+    res.json(data);
+  } catch (error) {
+    console.error(
+      "ITINERARY DETAIL ERROR:",
+      error.message
+    );
+
+    res.status(503).json({
+      message: "Itinerary Service unavailable",
+      error: error.message
+    });
   }
-);
+});
 
 // ===============================
 // CREATE ITINERARY
 // ===============================
 
-app.post("/itineraries", async (req, res) => {
+app.post("/itineraries", requireAuth, async (req, res) => {
   try {
-    console.log(
-      "Creating itinerary:",
-      req.body
-    );
-
     const response = await fetch(
       ITINERARY_SERVICE + "/itineraries",
       {
@@ -231,7 +233,11 @@ app.post("/itineraries", async (req, res) => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(req.body)
+        body: JSON.stringify({
+          ...req.body,
+          userId: req.user.id,
+          username: req.user.username
+        })
       }
     );
 
@@ -259,7 +265,7 @@ app.post("/itineraries", async (req, res) => {
 // CHAT - GET MESSAGES
 // ===============================
 
-app.get("/chat/messages", async (req, res) => {
+app.get("/chat/messages", requireAuth, async (req, res) => {
   try {
     const response = await fetch(
       CHAT_SERVICE + "/messages"
@@ -289,7 +295,7 @@ app.get("/chat/messages", async (req, res) => {
 // CHAT - SEND MESSAGE
 // ===============================
 
-app.post("/chat/messages", async (req, res) => {
+app.post("/chat/messages", requireAuth, async (req, res) => {
   try {
     const response = await fetch(
       CHAT_SERVICE + "/messages",
@@ -298,7 +304,10 @@ app.post("/chat/messages", async (req, res) => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(req.body)
+        body: JSON.stringify({
+          message: req.body.message,
+          username: req.user.username
+        })
       }
     );
 

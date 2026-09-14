@@ -1,7 +1,10 @@
  const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const crypto = require("crypto");
 const { Server } = require("socket.io");
+
+const store = require("./store/messageStore");
 
 const app = express();
 const server = http.createServer(app);
@@ -18,15 +21,21 @@ const io = new Server(server, {
     }
 });
 
-// Temporary in-memory messages
-let messages = [
-    {
-        id: 1,
-        username: "GlobeTrotter",
-        message: "Welcome to the GlobeTrotter community chat!",
+function appendMessage(username, message) {
+    const messages = store.readMessages();
+
+    const newMessage = {
+        id: crypto.randomUUID(),
+        username,
+        message,
         timestamp: new Date().toISOString()
-    }
-];
+    };
+
+    messages.push(newMessage);
+    store.writeMessages(messages);
+
+    return newMessage;
+}
 
 // Health check
 app.get("/health", (req, res) => {
@@ -48,7 +57,7 @@ app.get("/", (req, res) => {
 // Get chat messages
 app.get("/messages", (req, res) => {
     res.status(200).json({
-        messages
+        messages: store.readMessages()
     });
 });
 
@@ -62,14 +71,7 @@ app.post("/messages", (req, res) => {
         });
     }
 
-    const newMessage = {
-        id: messages.length + 1,
-        username,
-        message,
-        timestamp: new Date().toISOString()
-    };
-
-    messages.push(newMessage);
+    const newMessage = appendMessage(username, message);
 
     // Send message to all connected users
     io.emit("new-message", newMessage);
@@ -84,7 +86,7 @@ app.post("/messages", (req, res) => {
 io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.emit("chat-history", messages);
+    socket.emit("chat-history", store.readMessages());
 
     socket.on("send-message", (data) => {
         const { username, message } = data;
@@ -93,16 +95,7 @@ io.on("connection", (socket) => {
             return;
         }
 
-        const newMessage = {
-            id: messages.length + 1,
-            username,
-            message,
-            timestamp: new Date().toISOString()
-        };
-
-        messages.push(newMessage);
-
-        io.emit("new-message", newMessage);
+        io.emit("new-message", appendMessage(username, message));
     });
 
     socket.on("disconnect", () => {
@@ -112,4 +105,5 @@ io.on("connection", (socket) => {
 
 server.listen(PORT, () => {
     console.log(`Chat Service running on http://localhost:${PORT}`);
+    console.log(`Messages stored in ${store.MESSAGES_FILE}`);
 });

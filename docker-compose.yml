@@ -17,6 +17,7 @@
       ITINERARY_SERVICE: http://itinerary-service:5003
       AUTH_SERVICE: http://auth-service:5005
       CHAT_SERVICE: http://chat-service:5006
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in the root .env file}
 
     depends_on:
       destination-service:
@@ -54,15 +55,13 @@
     build:
       context: ./auth-service
     container_name: globetrotter-auth-service
-    env_file:
-      - ./auth-service/.env
     environment:
       PORT: 5005
-      MONGO_URI: mongodb://mongo:27017/globetrotter-auth
+      DATA_DIR: /app/data
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in the root .env file}
 
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - auth-data:/app/data
 
     healthcheck:
       test:
@@ -72,26 +71,6 @@
           "-e",
           "fetch('http://localhost:5005/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-    restart: unless-stopped
-
-
-  # ==========================================
-  # MONGO
-  # ==========================================
-
-  mongo:
-    image: mongo:7
-    container_name: globetrotter-mongo
-    volumes:
-      - mongo-data:/data/db
-
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -137,6 +116,10 @@
     container_name: globetrotter-itinerary-service
     environment:
       PORT: 5003
+      DATA_DIR: /app/data
+
+    volumes:
+      - itinerary-data:/app/data
 
     healthcheck:
       test:
@@ -196,6 +179,10 @@
     container_name: globetrotter-chat-service
     environment:
       PORT: 5006
+      DATA_DIR: /app/data
+
+    volumes:
+      - chat-data:/app/data
 
     healthcheck:
       test:
@@ -214,4 +201,6 @@
 
 
 volumes:
-  mongo-data:
+  auth-data:
+  itinerary-data:
+  chat-data:
