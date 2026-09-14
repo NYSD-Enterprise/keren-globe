@@ -1,14 +1,23 @@
     import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUser, clearSession } from "../Services/auth";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [user, setUser] = useState(getUser);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = () => setMenuOpen(false);
+
+  const currentView = new URLSearchParams(location.search).get("view");
+
+  const isActive = (path, view = null) =>
+    location.pathname === path && currentView === view;
+
+  const navLinkStyle = (active) =>
+    active ? { ...linkStyle, ...activeLinkStyle } : linkStyle;
 
   const handleLogout = () => {
     clearSession();
@@ -46,30 +55,54 @@ function Navbar() {
         className={`app-navbar-links${menuOpen ? " is-open" : ""}`}
         style={linksStyle}
       >
-        <Link to="/" style={linkStyle} onClick={closeMenu}>
-          Home
+        <Link to="/" style={navLinkStyle(isActive("/"))} onClick={closeMenu}>
+          🏠 Home
         </Link>
 
         {user && (
           <>
-            <Link to="/?view=destinations" style={linkStyle} onClick={closeMenu}>
-              Explore
+            <Link
+              to="/?view=destinations"
+              style={navLinkStyle(isActive("/", "destinations"))}
+              onClick={closeMenu}
+            >
+              🌍 Explore
             </Link>
 
-            <Link to="/?view=recommendations" style={linkStyle} onClick={closeMenu}>
-              Recommendations
+            <Link
+              to="/?view=recommendations"
+              style={navLinkStyle(isActive("/", "recommendations"))}
+              onClick={closeMenu}
+            >
+              ⭐ Recommendations
             </Link>
 
-            <Link to="/?view=planner" style={linkStyle} onClick={closeMenu}>
-              Plan Trip
+            <Link
+              to="/?view=planner"
+              style={navLinkStyle(isActive("/", "planner"))}
+              onClick={closeMenu}
+            >
+              🗺️ Plan Trip
             </Link>
 
-            <Link to="/?view=itineraries" style={linkStyle} onClick={closeMenu}>
-              My Itineraries
+            <Link
+              to="/?view=itineraries"
+              style={navLinkStyle(isActive("/", "itineraries"))}
+              onClick={closeMenu}
+            >
+              📋 My Itineraries
             </Link>
 
-            <Link to="/chat" style={chatStyle} onClick={closeMenu}>
-              Community Chat
+            <Link
+              to="/chat"
+              style={
+                location.pathname === "/chat"
+                  ? { ...chatStyle, ...activeLinkStyle }
+                  : chatStyle
+              }
+              onClick={closeMenu}
+            >
+              💬 Community Chat
             </Link>
           </>
         )}
@@ -84,17 +117,17 @@ function Navbar() {
               onClick={handleLogout}
               style={logoutStyle}
             >
-              Logout
+              🚪 Logout
             </button>
           </>
         ) : (
           <>
             <Link to="/login" style={linkStyle} onClick={closeMenu}>
-              Login
+              🔐 Login
             </Link>
 
             <Link to="/register" style={registerStyle} onClick={closeMenu}>
-              Register
+              📝 Register
             </Link>
           </>
         )}
@@ -118,6 +151,9 @@ const navStyle = {
   background: "#ffffff",
   borderBottom: "1px solid #e5e7eb",
   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  position: "sticky",
+  top: 0,
+  zIndex: 100,
 };
 
 const logoStyle = {
@@ -138,6 +174,13 @@ const linkStyle = {
   color: "#333333",
   fontSize: "15px",
   fontWeight: "600",
+};
+
+const activeLinkStyle = {
+  color: "#1d4ed8",
+  fontWeight: "800",
+  borderBottom: "2px solid #1d4ed8",
+  paddingBottom: "2px",
 };
 
 const chatStyle = {
