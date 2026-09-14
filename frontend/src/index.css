@@ -154,7 +154,7 @@
 
 .chat-form {
   display: grid;
-  grid-template-columns: 160px 1fr auto;
+  grid-template-columns: 1fr 120px;
   gap: 10px;
   padding: 18px 22px;
   background: #ffffff;
@@ -177,7 +177,7 @@
 }
 
 .chat-form button {
-  padding: 13px 22px;
+  padding: 13px 18px;
   border: none;
   border-radius: 10px;
   background: #2563eb;
@@ -252,11 +252,11 @@
   }
 
   .chat-form {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 92px;
     padding: 14px;
   }
 
   .chat-form button {
-    width: 100%;
+    padding: 13px 10px;
   }
 }
