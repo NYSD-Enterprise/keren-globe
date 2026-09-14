@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../Services/Api";
 
 const destinationImages = [
@@ -136,6 +136,7 @@ function DestinationCard({ destination, index }) {
 
 function Home() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [destinations, setDestinations] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -329,16 +330,33 @@ function Home() {
     }
   };
 
-  const navButtonStyle = {
-    border: "none",
-    borderRadius: "8px",
-    padding: "10px 16px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    backgroundColor: "#ffffff",
-    color: "#1d4ed8",
-  };
+  // The navbar links here as "/?view=..." so each section is reachable from any page.
+  useEffect(() => {
+    const view = searchParams.get("view");
+
+    if (view === "destinations") {
+      exploreDestinations();
+    } else if (view === "recommendations") {
+      getRecommendations();
+    } else if (view === "planner") {
+      setShowPlanner(true);
+      setShowDestinations(false);
+      setShowRecommendations(false);
+      setShowItineraries(false);
+
+      if (destinations.length === 0) {
+        loadDestinations();
+      }
+    } else if (view === "itineraries") {
+      loadItineraries();
+    } else {
+      setShowDestinations(false);
+      setShowRecommendations(false);
+      setShowPlanner(false);
+      setShowItineraries(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div
@@ -390,43 +408,6 @@ function Home() {
             >
               Your smart travel companion
             </p>
-          </div>
-
-          <div
-            className="app-header-actions"
-            style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              style={navButtonStyle}
-              onClick={exploreDestinations}
-            >
-              Explore
-            </button>
-
-            <button
-              style={navButtonStyle}
-              onClick={getRecommendations}
-            >
-              Recommendations
-            </button>
-
-            <button
-              style={navButtonStyle}
-              onClick={openPlanner}
-            >
-              Plan Trip
-            </button>
-
-            <button
-              style={navButtonStyle}
-              onClick={loadItineraries}
-            >
-              My Itineraries
-            </button>
           </div>
         </div>
       </header>

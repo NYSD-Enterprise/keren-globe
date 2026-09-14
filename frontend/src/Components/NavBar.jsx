@@ -6,31 +6,73 @@ function Navbar() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(getUser);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const closeMenu = () => setMenuOpen(false);
 
   const handleLogout = () => {
     clearSession();
 
     setUser(null);
+    closeMenu();
 
     navigate("/login");
   };
 
   return (
     <nav className="app-navbar" style={navStyle}>
-      {/* LOGO */}
-      <Link to="/" style={logoStyle}>
-        GlobeTrotter
-      </Link>
+      <div className="app-navbar-top">
+        {/* LOGO */}
+        <Link to="/" style={logoStyle} onClick={closeMenu}>
+          GlobeTrotter
+        </Link>
+
+        {/* HAMBURGER (mobile only) */}
+        <button
+          type="button"
+          className="app-navbar-toggle"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+      </div>
 
       {/* NAVIGATION */}
-      <div className="app-navbar-links" style={linksStyle}>
-        <Link to="/" style={linkStyle}>
+      <div
+        className={`app-navbar-links${menuOpen ? " is-open" : ""}`}
+        style={linksStyle}
+      >
+        <Link to="/" style={linkStyle} onClick={closeMenu}>
           Home
         </Link>
 
-        <Link to="/chat" style={chatStyle}>
-          Community Chat
-        </Link>
+        {user && (
+          <>
+            <Link to="/?view=destinations" style={linkStyle} onClick={closeMenu}>
+              Explore
+            </Link>
+
+            <Link to="/?view=recommendations" style={linkStyle} onClick={closeMenu}>
+              Recommendations
+            </Link>
+
+            <Link to="/?view=planner" style={linkStyle} onClick={closeMenu}>
+              Plan Trip
+            </Link>
+
+            <Link to="/?view=itineraries" style={linkStyle} onClick={closeMenu}>
+              My Itineraries
+            </Link>
+
+            <Link to="/chat" style={chatStyle} onClick={closeMenu}>
+              Community Chat
+            </Link>
+          </>
+        )}
 
         {user ? (
           <>
@@ -47,11 +89,11 @@ function Navbar() {
           </>
         ) : (
           <>
-            <Link to="/login" style={linkStyle}>
+            <Link to="/login" style={linkStyle} onClick={closeMenu}>
               Login
             </Link>
 
-            <Link to="/register" style={registerStyle}>
+            <Link to="/register" style={registerStyle} onClick={closeMenu}>
               Register
             </Link>
           </>
