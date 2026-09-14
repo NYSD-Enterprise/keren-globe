@@ -310,7 +310,7 @@
   }
 
   .app-navbar-links {
-    display: none;
+    display: none !important;
     width: 100%;
     flex-direction: column !important;
     align-items: stretch !important;
@@ -320,7 +320,7 @@
   }
 
   .app-navbar-links.is-open {
-    display: flex;
+    display: flex !important;
   }
 
   .app-header {
