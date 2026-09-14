@@ -1,4 +1,4 @@
- require("dotenv").config();
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
@@ -16,6 +16,17 @@ const DESTINATION_SERVICE =
   process.env.DESTINATION_SERVICE || "http://localhost:5002";
 
 const PORT = process.env.PORT || 5004;
+
+// =====================================================
+// HEALTH CHECK
+// =====================================================
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "recommendation-service"
+  });
+});
 
 // =====================================================
 // HOME

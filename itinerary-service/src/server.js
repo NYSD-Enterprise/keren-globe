@@ -19,28 +19,32 @@ let itineraries = [
         days: 5
     },
     {
-        id: "eb267252-268b-479f-9561-c3fb21c863aa",
-        userId: "cfa3faca-f7b7-428b-9c50-24f7a4eb69a4",
-        destination: "Paris",
-        days: 5
-    },
-    {
-        id: "92ed33d8-25d9-4859-a314-36fe8f3239fb",
-        userId: "adb349a5-57f4-4d0e-9555-eea726f31a27",
-        destination: "Nairobi",
+        id: 2,
+        userId: "demo-user",
+        destination: "Dubai",
         days: 4
     }
 ];
 
 // ==========================================
-// TEST ROUTE
+// HEALTH CHECK
+// ==========================================
+
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "healthy",
+        service: "itinerary-service"
+    });
+});
+
+// ==========================================
+// ROOT
 // ==========================================
 
 app.get("/", (req, res) => {
-    res.json({
-        message: "Itinerary Service is running",
+    res.status(200).json({
         service: "itinerary-service",
-        port: 5003
+        status: "running"
     });
 });
 
@@ -56,6 +60,26 @@ app.get("/itineraries", (req, res) => {
 });
 
 // ==========================================
+// GET ITINERARY BY ID
+// ==========================================
+
+app.get("/itineraries/:id", (req, res) => {
+    const id = Number(req.params.id);
+
+    const itinerary = itineraries.find(
+        item => item.id === id
+    );
+
+    if (!itinerary) {
+        return res.status(404).json({
+            message: "Itinerary not found"
+        });
+    }
+
+    res.status(200).json(itinerary);
+});
+
+// ==========================================
 // CREATE ITINERARY
 // ==========================================
 
@@ -67,25 +91,18 @@ app.post("/itineraries", (req, res) => {
         days
     } = req.body;
 
-    // Validation
     if (!userId || !destination || !days) {
         return res.status(400).json({
             message: "userId, destination and days are required"
         });
     }
 
-    // Validate number of days
-    if (Number(days) <= 0) {
-        return res.status(400).json({
-            message: "Days must be greater than 0"
-        });
-    }
-
     const newItinerary = {
-        id: crypto.randomUUID(),
+        id: itineraries.length + 1,
         userId,
         destination,
-        days: Number(days)
+        days: Number(days),
+        createdAt: new Date().toISOString()
     };
 
     itineraries.push(newItinerary);
@@ -93,6 +110,69 @@ app.post("/itineraries", (req, res) => {
     res.status(201).json({
         message: "Itinerary created successfully",
         itinerary: newItinerary
+    });
+});
+
+// ==========================================
+// UPDATE ITINERARY
+// ==========================================
+
+app.put("/itineraries/:id", (req, res) => {
+
+    const id = Number(req.params.id);
+
+    const itinerary = itineraries.find(
+        item => item.id === id
+    );
+
+    if (!itinerary) {
+        return res.status(404).json({
+            message: "Itinerary not found"
+        });
+    }
+
+    const {
+        destination,
+        days
+    } = req.body;
+
+    if (destination !== undefined) {
+        itinerary.destination = destination;
+    }
+
+    if (days !== undefined) {
+        itinerary.days = Number(days);
+    }
+
+    res.status(200).json({
+        message: "Itinerary updated successfully",
+        itinerary
+    });
+});
+
+// ==========================================
+// DELETE ITINERARY
+// ==========================================
+
+app.delete("/itineraries/:id", (req, res) => {
+
+    const id = Number(req.params.id);
+
+    const index = itineraries.findIndex(
+        item => item.id === id
+    );
+
+    if (index === -1) {
+        return res.status(404).json({
+            message: "Itinerary not found"
+        });
+    }
+
+    const deletedItinerary = itineraries.splice(index, 1);
+
+    res.status(200).json({
+        message: "Itinerary deleted successfully",
+        itinerary: deletedItinerary[0]
     });
 });
 
@@ -118,7 +198,7 @@ app.get("/itineraries/user/:userId", (req, res) => {
 // START SERVER
 // ==========================================
 
-const PORT = 5003;
+const PORT = process.env.PORT || 5003;
 
 app.listen(PORT, () => {
     console.log(

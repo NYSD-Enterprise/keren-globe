@@ -46,9 +46,9 @@ const destinations = [
     id: 4,
     name: "Nairobi",
     country: "Kenya",
-    category: "Wildlife",
+    category: "Nature",
     description:
-      "A vibrant city known for wildlife, safari experiences, and national parks.",
+      "A vibrant African city known for wildlife, national parks, and cultural attractions.",
     latitude: -1.2921,
     longitude: 36.8219,
   },
@@ -57,9 +57,9 @@ const destinations = [
     id: 5,
     name: "London",
     country: "United Kingdom",
-    category: "History",
+    category: "City",
     description:
-      "A historic city filled with famous landmarks, museums, culture, and entertainment.",
+      "A historic and modern city famous for landmarks, museums, shopping, and culture.",
     latitude: 51.5074,
     longitude: -0.1278,
   },
@@ -70,7 +70,7 @@ const destinations = [
     country: "Italy",
     category: "History",
     description:
-      "An ancient city famous for its architecture, historic landmarks, and Italian culture.",
+      "The Eternal City, home to the Colosseum, Vatican City, ancient ruins, and Italian culture.",
     latitude: 41.9028,
     longitude: 12.4964,
   },
@@ -79,130 +79,116 @@ const destinations = [
     id: 7,
     name: "Cairo",
     country: "Egypt",
-    category: "Ancient",
+    category: "History",
     description:
-      "A historic city and gateway to the pyramids and ancient Egyptian civilization.",
+      "A historic city famous for the Pyramids of Giza, ancient Egyptian civilization, and the Nile.",
     latitude: 30.0444,
     longitude: 31.2357,
   },
 
   {
     id: 8,
-    name: "ICT University",
+    name: "Yaoundé",
     country: "Cameroon",
-    city: "Yaoundé",
-    area: "Messassi",
-    category: "Education",
+    category: "City",
     description:
-      "ICT University campus in Messassi, Yaoundé.",
-    latitude: 3.9436,
-    longitude: 11.5678,
+      "The capital of Cameroon, known for its hills, cultural attractions, and vibrant city life.",
+    latitude: 3.848,
+    longitude: 11.5021,
   },
 
   {
     id: 9,
-    name: "Mount Cameroon",
-    country: "Cameroon",
-    city: "Buea",
-    area: "Southwest Region",
-    category: "Mountain",
-    description:
-      "One of Africa's highest volcanic mountains and a popular destination for hiking and nature exploration.",
-    latitude: 4.2037,
-    longitude: 9.1703,
-  },
-
-  {
-    id: 10,
-    name: "Kribi Beach",
-    country: "Cameroon",
-    city: "Kribi",
-    area: "South Region",
-    category: "Beach",
-    description:
-      "A beautiful coastal destination known for beaches, ocean views, and a relaxed atmosphere.",
-    latitude: 2.9406,
-    longitude: 9.9103,
-  },
-
-  {
-    id: 11,
-    name: "Limbe Beach",
-    country: "Cameroon",
-    city: "Limbe",
-    area: "Southwest Region",
-    category: "Beach",
-    description:
-      "A popular coastal destination with black volcanic sand, ocean views, and nearby attractions.",
-    latitude: 4.0167,
-    longitude: 9.2167,
-  },
-
-  {
-    id: 12,
-    name: "Mefou National Park",
-    country: "Cameroon",
-    city: "Yaoundé",
-    area: "Centre Region",
-    category: "Wildlife",
-    description:
-      "A wildlife sanctuary near Yaoundé where visitors can experience Cameroon's rich biodiversity.",
-    latitude: 3.7447,
-    longitude: 11.5167,
-  },
-
-  {
-    id: 13,
-    name: "Waza National Park",
-    country: "Cameroon",
-    city: "Waza",
-    area: "Far North Region",
-    category: "Wildlife",
-    description:
-      "A famous national park known for wildlife, savanna landscapes, and safari experiences.",
-    latitude: 11.3447,
-    longitude: 14.6917,
-  },
-
-  {
-    id: 14,
     name: "Bamenda",
     country: "Cameroon",
-    city: "Bamenda",
-    area: "Northwest Region",
-    category: "Mountain",
+    category: "Nature",
     description:
-      "A highland city surrounded by beautiful hills, valleys, and scenic landscapes.",
+      "A scenic city in northwestern Cameroon surrounded by hills, valleys, and beautiful landscapes.",
     latitude: 5.9597,
     longitude: 10.1459,
   },
 
   {
-    id: 15,
-    name: "National Museum of Yaoundé",
+    id: 10,
+    name: "Limbe Beach",
     country: "Cameroon",
-    city: "Yaoundé",
-    area: "Centre Region",
-    category: "Museum",
+    category: "Beach",
     description:
-      "A cultural museum showcasing Cameroon's history, heritage, art, and traditional culture.",
-    latitude: 3.8626,
-    longitude: 11.5186,
+      "A beautiful coastal destination known for black volcanic sand beaches, ocean views, and relaxing scenery.",
+    latitude: 4.0236,
+    longitude: 9.2067,
+  },
+
+  {
+    id: 11,
+    name: "Mount Cameroon",
+    country: "Cameroon",
+    category: "Adventure",
+    description:
+      "One of Africa's highest volcanoes, offering hiking, adventure, and spectacular natural scenery.",
+    latitude: 4.2035,
+    longitude: 9.1705,
+  },
+
+  {
+    id: 12,
+    name: "Kribi Beach",
+    country: "Cameroon",
+    category: "Beach",
+    description:
+      "A popular coastal destination known for sandy beaches, warm waters, and relaxing seaside experiences.",
+    latitude: 2.9373,
+    longitude: 9.9077,
+  },
+
+  {
+    id: 13,
+    name: "Mefou National Park",
+    country: "Cameroon",
+    category: "Nature",
+    description:
+      "A wildlife sanctuary near Yaoundé where visitors can experience Cameroon's rich biodiversity.",
+    latitude: 3.6589,
+    longitude: 11.5821,
+  },
+
+  {
+    id: 14,
+    name: "Waza National Park",
+    country: "Cameroon",
+    category: "Wildlife",
+    description:
+      "A famous wildlife park in northern Cameroon known for elephants, lions, giraffes, and other animals.",
+    latitude: 11.335,
+    longitude: 14.6417,
+  },
+
+  {
+    id: 15,
+    name: "ICT University",
+    country: "Cameroon",
+    category: "Education",
+    description:
+      "A technology-focused university in Yaoundé known for ICT education and innovation.",
+    latitude: 3.848,
+    longitude: 11.5021,
   },
 
   {
     id: 16,
-    name: "Yaoundé",
+    name: "Foumban",
     country: "Cameroon",
-    city: "Yaoundé",
-    area: "Centre Region",
-    category: "City",
+    category: "Culture",
     description:
-      "The capital city of Cameroon, known for its green hills, cultural attractions, museums, markets, and vibrant city life.",
-    latitude: 3.8480,
-    longitude: 11.5021,
+      "A historic cultural destination known for the Bamoun Kingdom, traditional arts, crafts, and museums.",
+    latitude: 5.7266,
+    longitude: 10.898,
   },
 ];
+
+// ===============================
+// HOME
+// ===============================
 
 app.get("/", (req, res) => {
   res.json({
@@ -212,9 +198,28 @@ app.get("/", (req, res) => {
   });
 });
 
+// ===============================
+// HEALTH CHECK
+// ===============================
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "destination-service",
+  });
+});
+
+// ===============================
+// GET ALL DESTINATIONS
+// ===============================
+
 app.get("/destinations", (req, res) => {
   res.status(200).json(destinations);
 });
+
+// ===============================
+// GET SINGLE DESTINATION
+// ===============================
 
 app.get("/destinations/:id", (req, res) => {
   const destination = destinations.find(
@@ -229,6 +234,10 @@ app.get("/destinations/:id", (req, res) => {
 
   res.status(200).json(destination);
 });
+
+// ===============================
+// START SERVER
+// ===============================
 
 const PORT = process.env.PORT || 5002;
 

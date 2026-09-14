@@ -1,4 +1,4 @@
-  require("dotenv").config();
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
@@ -11,9 +11,9 @@ app.use(express.json());
 // ===============================
 // MICROSERVICE URLS
 // ===============================
-// Docker Compose will provide these
+// Docker Compose provides these
 // service names through environment variables.
-// The localhost fallbacks allow normal
+// Localhost fallbacks allow normal
 // local development with npm run dev.
 
 const DESTINATION_SERVICE =
@@ -39,6 +39,17 @@ app.get("/", (req, res) => {
     message: "GlobeTrotter API Gateway is running",
     service: "api-gateway",
     port: PORT
+  });
+});
+
+// ===============================
+// HEALTH CHECK
+// ===============================
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "api-gateway"
   });
 });
 
@@ -248,8 +259,6 @@ app.post("/itineraries", async (req, res) => {
 // ===============================
 // AUTH SERVICE
 // ===============================
-// These routes are ready for the
-// authentication microservice.
 
 app.post("/register", async (req, res) => {
   try {
