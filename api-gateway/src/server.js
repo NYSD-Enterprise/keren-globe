@@ -11,10 +11,6 @@ app.use(express.json());
 // ===============================
 // MICROSERVICE URLS
 // ===============================
-// Docker Compose provides these
-// service names through environment variables.
-// Localhost fallbacks allow normal
-// local development with npm run dev.
 
 const DESTINATION_SERVICE =
   process.env.DESTINATION_SERVICE || "http://127.0.0.1:5002";
@@ -27,6 +23,9 @@ const ITINERARY_SERVICE =
 
 const AUTH_SERVICE =
   process.env.AUTH_SERVICE || "http://127.0.0.1:5005";
+
+const CHAT_SERVICE =
+  process.env.CHAT_SERVICE || "http://127.0.0.1:5006";
 
 const PORT = process.env.PORT || 5001;
 
@@ -257,6 +256,73 @@ app.post("/itineraries", async (req, res) => {
 });
 
 // ===============================
+// CHAT - GET MESSAGES
+// ===============================
+
+app.get("/chat/messages", async (req, res) => {
+  try {
+    const response = await fetch(
+      CHAT_SERVICE + "/messages"
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(
+      "CHAT GET ERROR:",
+      error.message
+    );
+
+    res.status(503).json({
+      message: "Chat Service unavailable",
+      error: error.message
+    });
+  }
+});
+
+// ===============================
+// CHAT - SEND MESSAGE
+// ===============================
+
+app.post("/chat/messages", async (req, res) => {
+  try {
+    const response = await fetch(
+      CHAT_SERVICE + "/messages",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(req.body)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    res.status(201).json(data);
+  } catch (error) {
+    console.error(
+      "CHAT POST ERROR:",
+      error.message
+    );
+
+    res.status(503).json({
+      message: "Chat Service unavailable",
+      error: error.message
+    });
+  }
+});
+
+// ===============================
 // AUTH SERVICE
 // ===============================
 
@@ -365,5 +431,10 @@ app.listen(PORT, () => {
   console.log(
     "Auth Service: " +
       AUTH_SERVICE
+  );
+
+  console.log(
+    "Chat Service: " +
+      CHAT_SERVICE
   );
 });

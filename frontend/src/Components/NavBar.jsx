@@ -1,4 +1,4 @@
-   import { useState } from "react";
+    import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function Navbar() {
@@ -29,50 +29,49 @@ function Navbar() {
 
   return (
     <nav style={navStyle}>
-
       {/* LOGO */}
       <Link to="/" style={logoStyle}>
-        🌍 GlobeTrotter
+        GlobeTrotter
       </Link>
 
       {/* NAVIGATION */}
       <div style={linksStyle}>
-
         <Link to="/" style={linkStyle}>
-          🏠 Home
+          Home
+        </Link>
+
+        <Link to="/chat" style={chatStyle}>
+          Community Chat
         </Link>
 
         {user ? (
           <>
             <span style={userStyle}>
-              👤 {user.username}
+              {user.username}
             </span>
 
             <button
               onClick={handleLogout}
               style={logoutStyle}
             >
-              🚪 Logout
+              Logout
             </button>
           </>
         ) : (
           <>
             <Link to="/login" style={linkStyle}>
-              🔐 Login
+              Login
             </Link>
 
             <Link to="/register" style={registerStyle}>
-              📝 Register
+              Register
             </Link>
           </>
         )}
-
       </div>
-
     </nav>
   );
 }
-
 
 /* =========================
    NAVBAR STYLES
@@ -109,6 +108,13 @@ const linkStyle = {
   color: "#333333",
   fontSize: "15px",
   fontWeight: "600",
+};
+
+const chatStyle = {
+  textDecoration: "none",
+  color: "#2563eb",
+  fontSize: "15px",
+  fontWeight: "700",
 };
 
 const registerStyle = {

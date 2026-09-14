@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import API from "../Services/Api";
 
 const destinationImages = [
@@ -26,15 +26,14 @@ function DestinationCard({ destination, index }) {
   return (
     <div
       style={{
-        background: "#ffffff",
-        borderRadius: "18px",
-        overflow: "hidden",
-        boxShadow: "0 8px 25px rgba(15, 23, 42, 0.08)",
+        backgroundColor: "#ffffff",
         border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: "0 6px 18px rgba(15, 23, 42, 0.08)",
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
       }}
     >
       {imagePath && (
@@ -60,51 +59,27 @@ function DestinationCard({ destination, index }) {
 
       <div
         style={{
-          padding: "20px",
+          padding: "18px",
           display: "flex",
           flexDirection: "column",
           flex: 1,
         }}
       >
-        <div
+        <h3
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "10px",
-            marginBottom: "8px",
+            margin: "0 0 6px",
+            fontSize: "20px",
+            color: "#172033",
           }}
         >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: "20px",
-              color: "#172033",
-            }}
-          >
-            📍 {destination.name}
-          </h3>
-
-          <span
-            style={{
-              background: "#eff6ff",
-              color: "#2563eb",
-              padding: "5px 9px",
-              borderRadius: "20px",
-              fontSize: "11px",
-              fontWeight: "700",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {destination.category || "Destination"}
-          </span>
-        </div>
+          📍 {destination.name}
+        </h3>
 
         <p
           style={{
-            margin: "0 0 10px",
-            color: "#475569",
+            margin: "0 0 8px",
             fontWeight: "600",
+            color: "#374151",
           }}
         >
           {destination.country}
@@ -112,10 +87,21 @@ function DestinationCard({ destination, index }) {
 
         <p
           style={{
+            margin: "0 0 10px",
+            fontSize: "14px",
+            color: "#2563eb",
+            fontWeight: "600",
+          }}
+        >
+          Category: {destination.category}
+        </p>
+
+        <p
+          style={{
             margin: "0 0 18px",
             fontSize: "14px",
             lineHeight: "1.6",
-            color: "#64748b",
+            color: "#4b5563",
             flex: 1,
           }}
         >
@@ -130,11 +116,10 @@ function DestinationCard({ destination, index }) {
             style={{
               display: "block",
               textAlign: "center",
-              background:
-                "linear-gradient(135deg, #2563eb, #1d4ed8)",
+              backgroundColor: "#2563eb",
               color: "#ffffff",
-              padding: "11px 14px",
-              borderRadius: "9px",
+              padding: "10px 14px",
+              borderRadius: "8px",
               textDecoration: "none",
               fontSize: "14px",
               fontWeight: "700",
@@ -153,7 +138,7 @@ function Home() {
   const [recommendations, setRecommendations] = useState([]);
   const [itineraries, setItineraries] = useState([]);
 
-  const [showDestinations, setShowDestinations] = useState(false);
+  const [showDestinations, setShowDestinations] = useState(true);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
   const [showItineraries, setShowItineraries] = useState(false);
@@ -172,12 +157,8 @@ function Home() {
   const [selectedDestination, setSelectedDestination] = useState("");
   const [days, setDays] = useState(5);
 
-  const exploreDestinations = async () => {
-    setShowDestinations(true);
-    setShowRecommendations(false);
-    setShowPlanner(false);
-    setShowItineraries(false);
-
+  // Fetch destinations from the API
+  const fetchDestinations = async () => {
     setDestinationError("");
 
     try {
@@ -187,7 +168,13 @@ function Home() {
 
       console.log("Destinations:", response.data);
 
-      setDestinations(response.data);
+      if (Array.isArray(response.data)) {
+        setDestinations(response.data);
+      } else if (response.data?.destinations) {
+        setDestinations(response.data.destinations);
+      } else {
+        setDestinations([]);
+      }
     } catch (error) {
       console.error("Destination error:", error);
 
@@ -197,6 +184,20 @@ function Home() {
     } finally {
       setLoadingDestinations(false);
     }
+  };
+
+  // Automatically load destinations when Home opens
+  useEffect(() => {
+    fetchDestinations();
+  }, []);
+
+  const exploreDestinations = async () => {
+    setShowDestinations(true);
+    setShowRecommendations(false);
+    setShowPlanner(false);
+    setShowItineraries(false);
+
+    await fetchDestinations();
   };
 
   const getRecommendations = async () => {
@@ -284,12 +285,6 @@ function Home() {
     try {
       setCreatingItinerary(true);
 
-      console.log("Creating itinerary:", {
-        userId: "demo-user",
-        destination: selectedDestination,
-        days: Number(days),
-      });
-
       const response = await API.post("/itineraries", {
         userId: "demo-user",
         destination: selectedDestination,
@@ -298,7 +293,9 @@ function Home() {
 
       console.log("Created itinerary:", response.data);
 
-      setItinerarySuccess("Itinerary created successfully!");
+      setItinerarySuccess(
+        "Itinerary created successfully!"
+      );
 
       setSelectedDestination("");
       setDays(5);
@@ -315,33 +312,28 @@ function Home() {
     }
   };
 
-  const openPlanner = () => {
-    setShowPlanner(!showPlanner);
+  const openPlanner = async () => {
+    setShowPlanner(true);
     setShowDestinations(false);
     setShowRecommendations(false);
     setShowItineraries(false);
+
+    // If destinations have not loaded yet,
+    // fetch them without changing the current screen.
+    if (destinations.length === 0) {
+      await fetchDestinations();
+    }
   };
 
   const navButtonStyle = {
-    border: "1px solid rgba(255,255,255,0.25)",
-    borderRadius: "8px",
-    padding: "9px 14px",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    color: "#ffffff",
-  };
-
-  const quickActionStyle = {
     border: "none",
-    borderRadius: "12px",
-    padding: "17px",
-    color: "#ffffff",
+    borderRadius: "8px",
+    padding: "10px 16px",
+    fontSize: "14px",
     fontWeight: "700",
     cursor: "pointer",
-    fontSize: "14px",
-    boxShadow: "0 6px 15px rgba(15,23,42,0.08)",
+    backgroundColor: "#ffffff",
+    color: "#1d4ed8",
   };
 
   return (
@@ -350,24 +342,26 @@ function Home() {
         minHeight: "100vh",
         background:
           "linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%)",
-        fontFamily:
-          "Inter, Arial, Helvetica, sans-serif",
+        fontFamily: "Inter, Arial, Helvetica, sans-serif",
         color: "#172033",
       }}
     >
-      {/* NAVBAR */}
+      {/* HEADER */}
       <header
         style={{
           background:
-            "linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0ea5e9 100%)",
+            "linear-gradient(135deg, #1d4ed8, #2563eb, #0f766e)",
           color: "#ffffff",
-          padding: "18px 25px",
-          boxShadow: "0 5px 20px rgba(15,23,42,0.15)",
+          padding: "22px 25px",
+          boxShadow: "0 5px 20px rgba(15, 23, 42, 0.15)",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
         }}
       >
         <div
           style={{
-            maxWidth: "1200px",
+            maxWidth: "1250px",
             margin: "0 auto",
             display: "flex",
             justifyContent: "space-between",
@@ -380,28 +374,28 @@ function Home() {
             <h1
               style={{
                 margin: 0,
-                fontSize: "27px",
-                letterSpacing: "-0.5px",
+                fontSize: "30px",
+                fontWeight: "800",
               }}
             >
-              GlobeTrotter 🌍
+              🌍 GlobeTrotter
             </h1>
 
             <p
               style={{
-                margin: "4px 0 0",
-                fontSize: "13px",
-                opacity: 0.88,
+                margin: "5px 0 0",
+                fontSize: "14px",
+                opacity: 0.9,
               }}
             >
               Your smart travel companion
             </p>
           </div>
 
-          <nav
+          <div
             style={{
               display: "flex",
-              gap: "7px",
+              gap: "8px",
               flexWrap: "wrap",
             }}
           >
@@ -432,13 +426,14 @@ function Home() {
             >
               My Itineraries
             </button>
-          </nav>
+          </div>
         </div>
       </header>
 
+      {/* MAIN */}
       <main
         style={{
-          maxWidth: "1200px",
+          maxWidth: "1250px",
           margin: "0 auto",
           padding: "35px 20px 50px",
         }}
@@ -446,47 +441,41 @@ function Home() {
         {/* HERO */}
         <section
           style={{
-            borderRadius: "22px",
-            padding: "55px 30px",
-            marginBottom: "28px",
-            textAlign: "center",
             background:
-              "linear-gradient(135deg, #dbeafe, #eff6ff 55%, #e0f2fe)",
-            border: "1px solid #dbeafe",
-            boxShadow: "0 10px 30px rgba(37,99,235,0.08)",
+              "linear-gradient(135deg, #ffffff, #eff6ff)",
+            borderRadius: "22px",
+            padding: "45px 25px",
+            marginBottom: "30px",
+            boxShadow:
+              "0 8px 25px rgba(15, 23, 42, 0.08)",
+            textAlign: "center",
+            border: "1px solid #e5e7eb",
           }}
         >
           <div
             style={{
-              display: "inline-block",
-              background: "#ffffff",
-              color: "#2563eb",
-              padding: "7px 13px",
-              borderRadius: "30px",
-              fontSize: "12px",
-              fontWeight: "800",
-              marginBottom: "14px",
+              fontSize: "50px",
+              marginBottom: "10px",
             }}
           >
-            ✈️ TRAVEL SMARTER
+            🌍
           </div>
 
           <h2
             style={{
-              margin: "0 0 13px",
-              fontSize: "38px",
-              lineHeight: "1.15",
+              margin: "0 0 12px",
+              fontSize: "clamp(28px, 5vw, 42px)",
               color: "#172033",
             }}
           >
-            Discover Your Next Adventure
+            Discover Your Next Adventure ✈️
           </h2>
 
           <p
             style={{
               margin: "0 auto",
-              maxWidth: "720px",
-              color: "#526071",
+              maxWidth: "750px",
+              color: "#5b6472",
               lineHeight: "1.7",
               fontSize: "16px",
             }}
@@ -497,77 +486,29 @@ function Home() {
           </p>
         </section>
 
-        {/* STATS */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "14px",
-            marginBottom: "30px",
-          }}
-        >
-          {[
-            ["🌍", "16+", "Destinations"],
-            ["⭐", "5+", "Travel Categories"],
-            ["🗺️", "2", "Continents"],
-            ["✈️", "24/7", "Travel Planning"],
-          ].map(([icon, number, label]) => (
-            <div
-              key={label}
-              style={{
-                background: "#ffffff",
-                borderRadius: "14px",
-                padding: "20px",
-                textAlign: "center",
-                border: "1px solid #e5e7eb",
-                boxShadow:
-                  "0 6px 18px rgba(15,23,42,0.05)",
-              }}
-            >
-              <div style={{ fontSize: "24px" }}>{icon}</div>
-
-              <div
-                style={{
-                  fontSize: "24px",
-                  fontWeight: "800",
-                  color: "#2563eb",
-                  marginTop: "4px",
-                }}
-              >
-                {number}
-              </div>
-
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#64748b",
-                  fontWeight: "600",
-                  marginTop: "2px",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-          ))}
-        </section>
-
         {/* QUICK ACTIONS */}
         <section
           style={{
             display: "grid",
             gridTemplateColumns:
               "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "14px",
+            gap: "16px",
             marginBottom: "40px",
           }}
         >
           <button
             onClick={exploreDestinations}
             style={{
-              ...quickActionStyle,
-              background:
-                "linear-gradient(135deg, #2563eb, #1d4ed8)",
+              padding: "18px",
+              border: "none",
+              borderRadius: "12px",
+              background: "#2563eb",
+              color: "#ffffff",
+              fontWeight: "700",
+              cursor: "pointer",
+              fontSize: "15px",
+              boxShadow:
+                "0 5px 15px rgba(37, 99, 235, 0.25)",
             }}
           >
             🌍 Explore Destinations
@@ -576,9 +517,16 @@ function Home() {
           <button
             onClick={getRecommendations}
             style={{
-              ...quickActionStyle,
-              background:
-                "linear-gradient(135deg, #0f766e, #0d9488)",
+              padding: "18px",
+              border: "none",
+              borderRadius: "12px",
+              background: "#0f766e",
+              color: "#ffffff",
+              fontWeight: "700",
+              cursor: "pointer",
+              fontSize: "15px",
+              boxShadow:
+                "0 5px 15px rgba(15, 118, 110, 0.25)",
             }}
           >
             ⭐ Get Recommendations
@@ -587,9 +535,16 @@ function Home() {
           <button
             onClick={openPlanner}
             style={{
-              ...quickActionStyle,
-              background:
-                "linear-gradient(135deg, #7c3aed, #6d28d9)",
+              padding: "18px",
+              border: "none",
+              borderRadius: "12px",
+              background: "#7c3aed",
+              color: "#ffffff",
+              fontWeight: "700",
+              cursor: "pointer",
+              fontSize: "15px",
+              boxShadow:
+                "0 5px 15px rgba(124, 58, 237, 0.25)",
             }}
           >
             🗺️ Plan My Trip
@@ -598,9 +553,16 @@ function Home() {
           <button
             onClick={loadItineraries}
             style={{
-              ...quickActionStyle,
-              background:
-                "linear-gradient(135deg, #ea580c, #c2410c)",
+              padding: "18px",
+              border: "none",
+              borderRadius: "12px",
+              background: "#ea580c",
+              color: "#ffffff",
+              fontWeight: "700",
+              cursor: "pointer",
+              fontSize: "15px",
+              boxShadow:
+                "0 5px 15px rgba(234, 88, 12, 0.25)",
             }}
           >
             📋 My Itineraries
@@ -610,54 +572,37 @@ function Home() {
         {/* DESTINATIONS */}
         {showDestinations && (
           <section>
-            <div
-              style={{
-                marginBottom: "22px",
-                textAlign: "center",
-              }}
-            >
-              <span
-                style={{
-                  color: "#2563eb",
-                  fontSize: "12px",
-                  fontWeight: "800",
-                  letterSpacing: "1px",
-                }}
-              >
-                EXPLORE
-              </span>
-
+            <div style={{ marginBottom: "22px" }}>
               <h2
                 style={{
-                  margin: "6px 0",
-                  fontSize: "30px",
-                  color: "#172033",
+                  margin: "0 0 6px",
+                  fontSize: "28px",
                 }}
               >
-                Explore Destinations 🌍
+                Explore Destinations
               </h2>
 
               <p
                 style={{
                   margin: 0,
-                  color: "#64748b",
+                  color: "#6b7280",
                 }}
               >
-                Discover amazing places around the world and
-                across Cameroon.
+                Discover amazing places around the world
+                and across Cameroon.
               </p>
             </div>
 
             {loadingDestinations && (
               <div
                 style={{
-                  textAlign: "center",
-                  padding: "35px",
                   background: "#ffffff",
-                  borderRadius: "14px",
+                  padding: "25px",
+                  borderRadius: "12px",
+                  textAlign: "center",
                 }}
               >
-                🔄 Loading destinations...
+                Loading destinations...
               </div>
             )}
 
@@ -668,10 +613,9 @@ function Home() {
                   color: "#b91c1c",
                   padding: "15px",
                   borderRadius: "10px",
-                  border: "1px solid #fecaca",
                 }}
               >
-                ⚠️ {destinationError}
+                {destinationError}
               </div>
             )}
 
@@ -682,17 +626,21 @@ function Home() {
                   style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(260px, 1fr))",
+                      "repeat(auto-fit, minmax(250px, 1fr))",
                     gap: "22px",
                   }}
                 >
-                  {destinations.map((destination, index) => (
-                    <DestinationCard
-                      key={destination.id || index}
-                      destination={destination}
-                      index={index}
-                    />
-                  ))}
+                  {destinations.map(
+                    (destination, index) => (
+                      <DestinationCard
+                        key={
+                          destination.id || index
+                        }
+                        destination={destination}
+                        index={index}
+                      />
+                    )
+                  )}
                 </div>
               )}
           </section>
@@ -701,28 +649,11 @@ function Home() {
         {/* RECOMMENDATIONS */}
         {showRecommendations && (
           <section>
-            <div
-              style={{
-                marginBottom: "22px",
-                textAlign: "center",
-              }}
-            >
-              <span
-                style={{
-                  color: "#0f766e",
-                  fontSize: "12px",
-                  fontWeight: "800",
-                  letterSpacing: "1px",
-                }}
-              >
-                PERSONALIZED DISCOVERY
-              </span>
-
+            <div style={{ marginBottom: "22px" }}>
               <h2
                 style={{
-                  margin: "6px 0",
-                  fontSize: "30px",
-                  color: "#172033",
+                  margin: "0 0 6px",
+                  fontSize: "28px",
                 }}
               >
                 Recommended Destinations ⭐
@@ -731,24 +662,24 @@ function Home() {
               <p
                 style={{
                   margin: 0,
-                  color: "#64748b",
+                  color: "#6b7280",
                 }}
               >
-                Discover destinations selected from our travel
-                database.
+                Discover destinations selected from our
+                travel database.
               </p>
             </div>
 
             {loadingRecommendations && (
               <div
                 style={{
-                  textAlign: "center",
-                  padding: "35px",
                   background: "#ffffff",
-                  borderRadius: "14px",
+                  padding: "25px",
+                  borderRadius: "12px",
+                  textAlign: "center",
                 }}
               >
-                🔄 Loading recommendations...
+                Loading recommendations...
               </div>
             )}
 
@@ -759,10 +690,9 @@ function Home() {
                   color: "#b91c1c",
                   padding: "15px",
                   borderRadius: "10px",
-                  border: "1px solid #fecaca",
                 }}
               >
-                ⚠️ {recommendationError}
+                {recommendationError}
               </div>
             )}
 
@@ -772,10 +702,9 @@ function Home() {
                 <div
                   style={{
                     background: "#ffffff",
-                    padding: "30px",
-                    borderRadius: "14px",
+                    padding: "25px",
+                    borderRadius: "12px",
                     textAlign: "center",
-                    color: "#64748b",
                   }}
                 >
                   No recommendations found.
@@ -789,251 +718,143 @@ function Home() {
                   style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(260px, 1fr))",
+                      "repeat(auto-fit, minmax(250px, 1fr))",
                     gap: "22px",
                   }}
                 >
-                  {recommendations.map((destination, index) => (
-                    <DestinationCard
-                      key={destination.id || index}
-                      destination={destination}
-                      index={index}
-                    />
-                  ))}
+                  {recommendations.map(
+                    (destination, index) => (
+                      <DestinationCard
+                        key={
+                          destination.id || index
+                        }
+                        destination={destination}
+                        index={index}
+                      />
+                    )
+                  )}
                 </div>
               )}
           </section>
         )}
 
-        {/* WHY GLOBETROTTER */}
-        {!showDestinations &&
-          !showRecommendations &&
-          !showPlanner &&
-          !showItineraries && (
-            <section
-              style={{
-                marginTop: "15px",
-                marginBottom: "35px",
-              }}
-            >
-              <div
-                style={{
-                  textAlign: "center",
-                  marginBottom: "20px",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#2563eb",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    letterSpacing: "1px",
-                  }}
-                >
-                  WHY GLOBETROTTER?
-                </span>
-
-                <h2
-                  style={{
-                    margin: "6px 0",
-                    fontSize: "28px",
-                  }}
-                >
-                  Everything You Need for Better Trips
-                </h2>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(230px, 1fr))",
-                  gap: "18px",
-                }}
-              >
-                {[
-                  [
-                    "🌍",
-                    "Discover",
-                    "Explore destinations around the world and discover beautiful places across Cameroon.",
-                  ],
-                  [
-                    "⭐",
-                    "Personalize",
-                    "Get travel recommendations from our destination database.",
-                  ],
-                  [
-                    "🗺️",
-                    "Plan",
-                    "Create and manage travel itineraries based on your destination and trip duration.",
-                  ],
-                ].map(([icon, title, description]) => (
-                  <div
-                    key={title}
-                    style={{
-                      background: "#ffffff",
-                      padding: "25px",
-                      borderRadius: "16px",
-                      border: "1px solid #e5e7eb",
-                      boxShadow:
-                        "0 7px 20px rgba(15,23,42,0.05)",
-                    }}
-                  >
-                    <div style={{ fontSize: "30px" }}>
-                      {icon}
-                    </div>
-
-                    <h3
-                      style={{
-                        margin: "10px 0 8px",
-                        color: "#172033",
-                      }}
-                    >
-                      {title}
-                    </h3>
-
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "#64748b",
-                        lineHeight: "1.6",
-                        fontSize: "14px",
-                      }}
-                    >
-                      {description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
         {/* PLANNER */}
         {showPlanner && (
           <section
             style={{
+              background: "#ffffff",
               padding: "30px",
               borderRadius: "18px",
-              background: "#ffffff",
               boxShadow:
-                "0 8px 25px rgba(15,23,42,0.07)",
+                "0 6px 20px rgba(15, 23, 42, 0.08)",
               border: "1px solid #e5e7eb",
             }}
           >
-            <div style={{ marginBottom: "25px" }}>
-              <span
-                style={{
-                  color: "#7c3aed",
-                  fontSize: "12px",
-                  fontWeight: "800",
-                  letterSpacing: "1px",
-                }}
-              >
-                TRIP PLANNER
-              </span>
-
-              <h2
-                style={{
-                  margin: "6px 0",
-                  fontSize: "30px",
-                }}
-              >
-                Plan My Trip 🗺️
-              </h2>
-
-              <p style={{ color: "#64748b" }}>
-                Choose a destination and specify how many days
-                you want to stay.
-              </p>
-            </div>
-
-            <div
+            <h2
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: "20px",
-                marginBottom: "22px",
+                marginTop: 0,
+                fontSize: "28px",
               }}
             >
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "7px",
-                    fontWeight: "700",
-                  }}
-                >
-                  Destination
-                </label>
+              Plan My Trip 🗺️
+            </h2>
 
-                <select
-                  value={selectedDestination}
-                  onChange={(event) =>
-                    setSelectedDestination(event.target.value)
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    borderRadius: "9px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="">
-                    -- Select a destination --
-                  </option>
+            <p
+              style={{
+                color: "#6b7280",
+                marginBottom: "25px",
+              }}
+            >
+              Choose a destination and specify how many
+              days you want to stay.
+            </p>
 
-                  {destinations.map((destination, index) => (
+            <div style={{ marginBottom: "20px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: "700",
+                  marginBottom: "8px",
+                }}
+              >
+                Destination
+              </label>
+
+              <select
+                value={selectedDestination}
+                onChange={(event) =>
+                  setSelectedDestination(
+                    event.target.value
+                  )
+                }
+                style={{
+                  width: "100%",
+                  maxWidth: "500px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #d1d5db",
+                  fontSize: "15px",
+                  background: "#ffffff",
+                }}
+              >
+                <option value="">
+                  -- Select a destination --
+                </option>
+
+                {destinations.map(
+                  (destination, index) => (
                     <option
-                      key={destination.id || index}
+                      key={
+                        destination.id || index
+                      }
                       value={destination.name}
                     >
-                      {destination.name} - {destination.country}
+                      {destination.name} -{" "}
+                      {destination.country}
                     </option>
-                  ))}
-                </select>
-              </div>
+                  )
+                )}
+              </select>
+            </div>
 
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "7px",
-                    fontWeight: "700",
-                  }}
-                >
-                  Number of days
-                </label>
+            <div style={{ marginBottom: "22px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: "700",
+                  marginBottom: "8px",
+                }}
+              >
+                Number of days
+              </label>
 
-                <input
-                  type="number"
-                  min="1"
-                  value={days}
-                  onChange={(event) =>
-                    setDays(event.target.value)
-                  }
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "12px",
-                    borderRadius: "9px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "14px",
-                  }}
-                />
-              </div>
+              <input
+                type="number"
+                min="1"
+                value={days}
+                onChange={(event) =>
+                  setDays(event.target.value)
+                }
+                style={{
+                  width: "100px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #d1d5db",
+                  fontSize: "15px",
+                }}
+              />
             </div>
 
             <button
               onClick={createItinerary}
               disabled={creatingItinerary}
               style={{
-                padding: "12px 22px",
+                padding: "12px 20px",
                 border: "none",
-                borderRadius: "9px",
-                background:
-                  "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                borderRadius: "8px",
+                background: creatingItinerary
+                  ? "#9ca3af"
+                  : "#2563eb",
                 color: "#ffffff",
                 fontWeight: "700",
                 cursor: creatingItinerary
@@ -1047,14 +868,25 @@ function Home() {
             </button>
 
             {itineraryError && (
-              <p style={{ color: "#b91c1c" }}>
-                ⚠️ {itineraryError}
+              <p
+                style={{
+                  color: "#b91c1c",
+                  marginTop: "15px",
+                }}
+              >
+                {itineraryError}
               </p>
             )}
 
             {itinerarySuccess && (
-              <p style={{ color: "#15803d" }}>
-                ✅ {itinerarySuccess}
+              <p
+                style={{
+                  color: "#15803d",
+                  marginTop: "15px",
+                  fontWeight: "600",
+                }}
+              >
+                {itinerarySuccess}
               </p>
             )}
           </section>
@@ -1063,43 +895,36 @@ function Home() {
         {/* ITINERARIES */}
         {showItineraries && (
           <section>
-            <div
-              style={{
-                marginBottom: "22px",
-                textAlign: "center",
-              }}
-            >
-              <span
-                style={{
-                  color: "#ea580c",
-                  fontSize: "12px",
-                  fontWeight: "800",
-                  letterSpacing: "1px",
-                }}
-              >
-                YOUR TRAVEL PLANS
-              </span>
-
+            <div style={{ marginBottom: "22px" }}>
               <h2
                 style={{
-                  margin: "6px 0",
-                  fontSize: "30px",
+                  margin: "0 0 6px",
+                  fontSize: "28px",
                 }}
               >
                 My Itineraries 📋
               </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "#6b7280",
+                }}
+              >
+                View the trips you have created.
+              </p>
             </div>
 
             {loadingItineraries && (
               <div
                 style={{
-                  textAlign: "center",
-                  padding: "35px",
                   background: "#ffffff",
-                  borderRadius: "14px",
+                  padding: "25px",
+                  borderRadius: "12px",
+                  textAlign: "center",
                 }}
               >
-                🔄 Loading itineraries...
+                Loading itineraries...
               </div>
             )}
 
@@ -1110,10 +935,9 @@ function Home() {
                   color: "#b91c1c",
                   padding: "15px",
                   borderRadius: "10px",
-                  border: "1px solid #fecaca",
                 }}
               >
-                ⚠️ {itineraryError}
+                {itineraryError}
               </div>
             )}
 
@@ -1123,51 +947,82 @@ function Home() {
                 <div
                   style={{
                     background: "#ffffff",
-                    padding: "35px",
-                    borderRadius: "14px",
+                    padding: "25px",
+                    borderRadius: "12px",
                     textAlign: "center",
-                    color: "#64748b",
                   }}
                 >
-                  No itineraries found yet.
+                  No itineraries found.
                 </div>
               )}
 
             {!loadingItineraries &&
               !itineraryError &&
-              itineraries.map((itinerary, index) => (
-                <div
-                  key={itinerary.id || index}
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "14px",
-                    padding: "22px",
-                    marginBottom: "15px",
-                    boxShadow:
-                      "0 5px 15px rgba(15,23,42,0.05)",
-                  }}
-                >
-                  <h3
+              itineraries.map(
+                (itinerary, index) => (
+                  <div
+                    key={
+                      itinerary.id || index
+                    }
                     style={{
-                      marginTop: 0,
-                      color: "#172033",
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "16px",
+                      padding: "24px",
+                      marginBottom: "16px",
+                      boxShadow:
+                        "0 5px 15px rgba(15, 23, 42, 0.06)",
                     }}
                   >
-                    📍 {itinerary.destination || "Trip"}
-                  </h3>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent:
+                          "space-between",
+                        alignItems: "center",
+                        gap: "15px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <h3
+                          style={{
+                            margin: "0 0 8px",
+                            fontSize: "21px",
+                            color: "#172033",
+                          }}
+                        >
+                          📍{" "}
+                          {itinerary.destination ||
+                            "Trip"}
+                        </h3>
 
-                  <p style={{ color: "#64748b" }}>
-                    <strong>Days:</strong>{" "}
-                    {itinerary.days || "N/A"}
-                  </p>
+                        <p
+                          style={{
+                            margin: 0,
+                            color: "#6b7280",
+                          }}
+                        >
+                          Your planned travel experience
+                        </p>
+                      </div>
 
-                  <p style={{ color: "#64748b" }}>
-                    <strong>User:</strong>{" "}
-                    {itinerary.userId || "demo-user"}
-                  </p>
-                </div>
-              ))}
+                      <div
+                        style={{
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          padding: "10px 16px",
+                          borderRadius: "20px",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {itinerary.days || "N/A"}{" "}
+                        day(s)
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
           </section>
         )}
       </main>
@@ -1175,67 +1030,25 @@ function Home() {
       {/* FOOTER */}
       <footer
         style={{
+          padding: "30px 20px",
+          textAlign: "center",
           background: "#172033",
           color: "#ffffff",
-          marginTop: "30px",
-          padding: "35px 20px",
         }}
       >
-        <div
+        <strong style={{ fontSize: "18px" }}>
+          🌍 GlobeTrotter
+        </strong>
+
+        <p
           style={{
-            maxWidth: "1200px",
-            margin: "0 auto",
-            textAlign: "center",
+            margin: "8px 0 0",
+            fontSize: "13px",
+            opacity: 0.75,
           }}
         >
-          <h3
-            style={{
-              margin: "0 0 7px",
-              fontSize: "21px",
-            }}
-          >
-            GlobeTrotter 🌍
-          </h3>
-
-          <p
-            style={{
-              margin: "0 0 15px",
-              color: "#cbd5e1",
-              fontSize: "14px",
-            }}
-          >
-            Discover. Plan. Travel.
-          </p>
-
-          <p
-            style={{
-              margin: 0,
-              color: "#94a3b8",
-              fontSize: "12px",
-            }}
-          >
-            Explore • Recommendations • Plan Trip • My
-            Itineraries
-          </p>
-
-          <div
-            style={{
-              height: "1px",
-              background: "#334155",
-              margin: "20px 0",
-            }}
-          />
-
-          <p
-            style={{
-              margin: 0,
-              color: "#94a3b8",
-              fontSize: "12px",
-            }}
-          >
-            © 2026 GlobeTrotter. All rights reserved.
-          </p>
-        </div>
+          Discover. Plan. Travel.
+        </p>
       </footer>
     </div>
   );
