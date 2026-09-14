@@ -55,9 +55,6 @@ function Navbar() {
         className={`app-navbar-links${menuOpen ? " is-open" : ""}`}
         style={linksStyle}
       >
-        <Link to="/" style={navLinkStyle(isActive("/"))} onClick={closeMenu}>
-          🏠 Home
-        </Link>
 
         {user && (
           <>
