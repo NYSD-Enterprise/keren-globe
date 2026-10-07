@@ -6,37 +6,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Destination data from Phase 1
-let destinations = [
-    {
-        id: 1,
-        name: "Paris",
-        country: "France",
-        category: "City",
-        description: "The City of Light"
-    },
-    {
-        id: 2,
-        name: "Dubai",
-        country: "UAE",
-        category: "Luxury",
-        description: "Modern city with world-class attractions"
-    },
-    {
-        id: 3,
-        name: "Cape Town",
-        country: "South Africa",
-        category: "Beach",
-        description: "Beautiful coastline and mountains"
-    },
-    {
-        id: 1785411307403,
-        name: "Nairobi",
-        country: "Kenya",
-        category: "Wildlife",
-        description: "Safari and national parks"
-    }
-];
+const fs = require("fs");
+const path = require("path");
+
+const dataFilePath = path.join(__dirname, "../data/destinations.json");
+
+function getDestinations() {
+    if (!fs.existsSync(dataFilePath)) return [];
+    return JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
+}
+
+function saveDestinations(destinations) {
+    fs.writeFileSync(dataFilePath, JSON.stringify(destinations, null, 2));
+}
 
 // Test route
 app.get("/", (req, res) => {
@@ -49,7 +31,7 @@ app.get("/", (req, res) => {
 
 // GET all destinations
 app.get("/destinations", (req, res) => {
-    res.status(200).json(destinations);
+    res.status(200).json(getDestinations());
 });
 
 // SEARCH destinations
@@ -57,10 +39,10 @@ app.get("/destinations/search", (req, res) => {
     const keyword = req.query.name?.trim();
 
     if (!keyword) {
-        return res.status(200).json(destinations);
+        return res.status(200).json(getDestinations());
     }
 
-    const results = destinations.filter(destination =>
+    const results = getDestinations().filter(destination =>
         destination.name.toLowerCase().includes(keyword.toLowerCase()) ||
         destination.country.toLowerCase().includes(keyword.toLowerCase())
     );
@@ -91,7 +73,9 @@ app.post("/destinations", (req, res) => {
         description
     };
 
+    const destinations = getDestinations();
     destinations.push(newDestination);
+    saveDestinations(destinations);
 
     res.status(201).json({
         message: "Destination created successfully",

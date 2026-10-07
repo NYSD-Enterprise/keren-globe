@@ -7,27 +7,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Itineraries from Phase 1
-let itineraries = [
-    {
-        id: 1,
-        userId: "adb349a5-57f4-4d0e-9555-eea726f31a27",
-        destination: "Paris",
-        days: 5
-    },
-    {
-        id: "eb267252-268b-479f-9561-c3fb21c863aa",
-        userId: "cfa3faca-f7b7-428b-9c50-24f7a4eb69a4",
-        destination: "Paris",
-        days: 5
-    },
-    {
-        id: "92ed33d8-25d9-4859-a314-36fe8f3239fb",
-        userId: "adb349a5-57f4-4d0e-9555-eea726f31a27",
-        destination: "Nairobi",
-        days: 4
-    }
-];
+const fs = require("fs");
+const path = require("path");
+
+const dataFilePath = path.join(__dirname, "../data/itineraries.json");
+
+function getItineraries() {
+    if (!fs.existsSync(dataFilePath)) return [];
+    return JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
+}
+
+function saveItineraries(itineraries) {
+    fs.writeFileSync(dataFilePath, JSON.stringify(itineraries, null, 2));
+}
 
 // Test route
 app.get("/", (req, res) => {
@@ -42,7 +34,7 @@ app.get("/", (req, res) => {
 app.get("/itineraries", (req, res) => {
     res.status(200).json({
         message: "All itineraries",
-        itineraries
+        itineraries: getItineraries()
     });
 });
 
@@ -67,7 +59,9 @@ app.post("/itineraries", (req, res) => {
         days
     };
 
+    const itineraries = getItineraries();
     itineraries.push(newItinerary);
+    saveItineraries(itineraries);
 
     res.status(201).json({
         message: "Itinerary created successfully",

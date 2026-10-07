@@ -9,9 +9,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Temporary in-memory users
-// Later we can connect this service to its own database.
-const users = [];
+const fs = require("fs");
+const path = require("path");
+
+const dataFilePath = path.join(__dirname, "../data/users.json");
+
+function getUsers() {
+    if (!fs.existsSync(dataFilePath)) return [];
+    return JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
+}
+
+function saveUsers(users) {
+    fs.writeFileSync(dataFilePath, JSON.stringify(users, null, 2));
+}
 
 // ===============================
 // TEST ROUTE
@@ -37,6 +47,7 @@ app.post("/register", async (req, res) => {
             });
         }
 
+        const users = getUsers();
         const existingUser = users.find(
             user => user.email === email
         );
@@ -57,6 +68,7 @@ app.post("/register", async (req, res) => {
         };
 
         users.push(user);
+        saveUsers(users);
 
         res.status(201).json({
             message: "User registered successfully",
@@ -87,6 +99,7 @@ app.post("/login", async (req, res) => {
             });
         }
 
+        const users = getUsers();
         const user = users.find(
             user => user.email === email
         );

@@ -7,3 +7,6 @@ build/
 .vite/
 coverage/
 *.log
+*.code-workspace
+# .github/
+# docker-compose.vps.yml

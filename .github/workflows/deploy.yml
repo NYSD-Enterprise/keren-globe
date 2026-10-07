@@ -1,0 +1,44 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - work-branch # Or your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: deploy
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          # Create deployment directory if it doesn't exist
+          mkdir -p /opt/projects/proxy/keren-globe
+          
+          # We pull the code from Git instead of SCP
+          if [ -d "/opt/projects/proxy/keren-globe/.git" ]; then
+            cd /opt/projects/proxy/keren-globe
+            git fetch origin work-branch
+            git checkout work-branch
+            git pull origin work-branch
+          else
+            git clone -b work-branch https://github.com/${{ github.repository }}.git /opt/projects/proxy/keren-globe
+            cd /opt/projects/proxy/keren-globe
+          fi
+
+          # Generate .env file
+          echo "FRONTEND_DOMAIN=kglobe.157.173.112.19.nip.io" > .env
+          echo "API_DOMAIN=api-kglobe.157.173.112.19.nip.io" >> .env
+          echo "VITE_API_URL=http://api-kglobe.157.173.112.19.nip.io:5000" >> .env
+
+          # Build and deploy
+          docker compose -f docker-compose.vps.yml down
+          docker compose -f docker-compose.vps.yml up -d --build

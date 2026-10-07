@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Kyoto",
+    "country": "Japan",
+    "category": "Culture",
+    "description": "A beautiful traditional Japanese temple surrounded by vibrant cherry blossoms and a serene pond.",
+    "imageUrl": "/images/kyoto.jpg",
+    "price": 1200,
+    "rating": 4.9
+  },
+  {
+    "id": 2,
+    "name": "Santorini",
+    "country": "Greece",
+    "category": "Relaxation",
+    "description": "Iconic white buildings with blue domed roofs built into the cliffside, overlooking the deep blue Aegean sea.",
+    "imageUrl": "/images/santorini.jpg",
+    "price": 1800,
+    "rating": 4.8
+  },
+  {
+    "id": 3,
+    "name": "Swiss Alps",
+    "country": "Switzerland",
+    "category": "Adventure",
+    "description": "Snow-capped majestic mountain peaks, a crystal clear pristine blue lake reflecting the mountains.",
+    "imageUrl": "/images/alps.jpg",
+    "price": 2500,
+    "rating": 5.0
+  }
+]

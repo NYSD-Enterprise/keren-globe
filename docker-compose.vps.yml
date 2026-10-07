@@ -1,0 +1,75 @@
+version: "3.9"
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    container_name: kg_api_gateway
+    networks:
+      - proxy-network
+      - backend-network
+    environment:
+      - DESTINATION_API=http://kg_destination_service:5002
+      - RECOMMENDATION_API=http://kg_recommendation_service:5004
+      - ITINERARY_API=http://kg_itinerary_service:5003
+      - AUTH_API=http://kg_auth_service:5001
+    ports:
+      - "5000:5000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kggateway.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.services.kggateway.loadbalancer.server.port=5000"
+
+  auth-service:
+    build: ./auth-service
+    container_name: kg_auth_service
+    networks:
+      - backend-network
+    environment:
+      - JWT_SECRET=kerenglobe_super_secret_key_2026
+    volumes:
+      - ./data:/app/data
+
+  destination-service:
+    build: ./destination-service
+    container_name: kg_destination_service
+    networks:
+      - backend-network
+    volumes:
+      - ./data:/app/data
+
+  itinerary-service:
+    build: ./itinerary-service
+    container_name: kg_itinerary_service
+    networks:
+      - backend-network
+    volumes:
+      - ./data:/app/data
+
+  recommendation-service:
+    build: ./recommendation-service
+    container_name: kg_recommendation_service
+    networks:
+      - backend-network
+    volumes:
+      - ./data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: kg_frontend
+    networks:
+      - proxy-network
+    ports:
+      - "18082:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kgfrontend.rule=Host(`${FRONTEND_DOMAIN}`)"
+      - "traefik.http.services.kgfrontend.loadbalancer.server.port=80"
+
+networks:
+  proxy-network:
+    external: true
+  backend-network:
+    driver: bridge

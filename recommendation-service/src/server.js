@@ -6,37 +6,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Destination data used for recommendations
-const destinations = [
-    {
-        id: 1,
-        name: "Paris",
-        country: "France",
-        category: "City",
-        description: "The City of Light"
-    },
-    {
-        id: 2,
-        name: "Dubai",
-        country: "UAE",
-        category: "Luxury",
-        description: "Modern city with world-class attractions"
-    },
-    {
-        id: 3,
-        name: "Cape Town",
-        country: "South Africa",
-        category: "Beach",
-        description: "Beautiful coastline and mountains"
-    },
-    {
-        id: 1785411307403,
-        name: "Nairobi",
-        country: "Kenya",
-        category: "Wildlife",
-        description: "Safari and national parks"
-    }
-];
+const fs = require("fs");
+const path = require("path");
+
+const dataFilePath = path.join(__dirname, "../data/destinations.json");
+
+function getDestinations() {
+    if (!fs.existsSync(dataFilePath)) return [];
+    return JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
+}
 
 // Test route
 app.get("/", (req, res) => {
@@ -51,7 +29,7 @@ app.get("/", (req, res) => {
 app.get("/recommendations", (req, res) => {
     res.status(200).json({
         message: "Recommended destinations",
-        recommendations: destinations
+        recommendations: getDestinations()
     });
 });
 
